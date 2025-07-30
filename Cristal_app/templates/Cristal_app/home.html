@@ -1,0 +1,55 @@
+{# Cristal_app/templates/Cristal_app/home.html #}
+{% extends 'Cristal_app/base_adminlte.html' %}
+
+{% block title %}Dashboard de Cristal App{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb_active %}Dashboard{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="m-0">Bienvenido</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">{{ message }}</h6>
+                <p class="card-text">Aquí puedes empezar a construir tu aplicación con la potencia de Django y el diseño de AdminLTE.</p>
+                <a href="#" class="btn btn-primary">Ir a algún lugar</a>
+            </div>
+        </div>
+
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h5 class="m-0">Ejemplo de Lista</h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    {% for item in items %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="m-0">Otro Card</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Puedes añadir más contenido y componentes de AdminLTE aquí.</p>
+                <a href="#" class="btn btn-success">¡Genial!</a>
+            </div>
+        </div>
+
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h5 class="m-0">Más Opciones</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Explora la documentación de AdminLTE para ver todos los componentes disponibles.</p>
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}

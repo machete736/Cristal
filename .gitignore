@@ -1,0 +1,22 @@
+# Entornos virtuales
+.venv/
+env/
+venv/
+ENV/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*.log
+*.pot
+*.pyc
+*.sqlite3
+
+# Archivos de configuración de PyCharm
+.idea/
+
+# Archivos de Django
+db.sqlite3
+*.mo
+media/
+staticfiles/
