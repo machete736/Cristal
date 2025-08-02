@@ -1,0 +1,62 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+
+{% block title %}Listado de Roles{% endblock %}
+{% block page_title %}Roles{% endblock %}
+{% block breadcrumb_active %}Roles{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Todos los Roles</h3>
+    <div class="card-tools">
+      <a href="{% url 'group_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> Añadir Rol
+      </a>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {% if messages %}
+        <div class="alert alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+                <div {% if message.tags %} class="alert alert-{{ message.tags }}"{% endif %}>
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th style="width: 10px">#</th>
+          <th>Nombre del Rol</th>
+          <th style="width: 150px">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ group.name }}</td>
+          <td>
+            <a href="{% url 'group_update' group.pk %}" class="btn btn-warning btn-sm">
+              <i class="fas fa-edit"></i>
+            </a>
+            <a href="{% url 'group_delete' group.pk %}" class="btn btn-danger btn-sm">
+              <i class="fas fa-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No hay roles registrados.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

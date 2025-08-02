@@ -1,0 +1,70 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+
+{% block title %}Listado de Usuarios{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+{% block breadcrumb_active %}Usuarios{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Todos los Usuarios</h3>
+    <div class="card-tools">
+      <a href="{% url 'user_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> Añadir Usuario
+      </a>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {% if messages %}
+        <div class="alert alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+                <div {% if message.tags %} class="alert alert-{{ message.tags }}"{% endif %}>
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th style="width: 10px">#</th>
+          <th>Nombre de Usuario</th>
+          <th>Email</th>
+          <th>Roles</th>
+          <th>Activo</th>
+          <th style="width: 150px">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email|default:"N/A" }}</td>
+          <td>
+            {% for group in user.groups.all %}
+              <span class="badge badge-info">{{ group.name }}</span>{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              Sin roles
+            {% endfor %}
+          </td>
+          <td>{% if user.is_active %}<span class="badge badge-success">Sí</span>{% else %}<span class="badge badge-danger">No</span>{% endif %}</td>
+          <td>
+            <a href="{% url 'user_update' user.pk %}" class="btn btn-warning btn-sm">
+              <i class="fas fa-edit"></i>
+            </a>
+            <a href="{% url 'user_delete' user.pk %}" class="btn btn-danger btn-sm">
+              <i class="fas fa-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
