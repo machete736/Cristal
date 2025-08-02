@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Mi Panel AdminLTE{% endblock %}</title>
+  <title>{% block title %}Sistema Hotel{% endblock %}</title>
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <link rel="stylesheet" href="{% static 'adminlte/plugins/fontawesome-free/css/all.min.css' %}">
@@ -24,7 +24,7 @@
         <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
       </li>
       <li class="nav-item d-none d-sm-inline-block">
-        <a href="{% url 'home' %}" class="nav-link">Inicio</a> {# Asumiendo que tendrás una URL 'home' #}
+        <a href="{% url 'home' %}" class="nav-link">Inicio</a>
       </li>
     </ul>
 
@@ -44,7 +44,7 @@
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <a href="{% url 'home' %}" class="brand-link">
       <img src="{% static 'adminlte/dist/img/AdminLTELogo.png' %}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">Cristal App</span>
+      <span class="brand-text font-weight-light">HOTEL</span>
     </a>
 
     <div class="sidebar">
@@ -62,18 +62,64 @@
           <li class="nav-item">
             <a href="{% url 'home' %}" class="nav-link">
               <i class="nav-icon fas fa-tachometer-alt"></i>
-              <p>Dashboard</p>
+              <p>Panel de Control</p>
             </a>
-          </li>
-          <li class="nav-item">
+                    <li class="nav-item">
             <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-th"></i>
+              <i class="nav-icon fas fa-edit"></i>
               <p>
-                Ejemplo Página
-                <span class="right badge badge-danger">New</span>
+                Mantenimiento
+                <i class="fas fa-angle-left right"></i>
               </p>
             </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="pisos.html" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Nivel</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="tipo_habitacion.html" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Tipo Habitacion</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="habitacion.html" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Habitacion</p>
+                </a>
+              </li>
+            </ul>
           </li>
+          </li>
+
+
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-edit"></i>
+              <p>
+                Acceso
+                <i class="fas fa-angle-left right"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="roles.html" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Roles</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="usuarios.html" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Usuarios</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+
         </ul>
       </nav>
       </div>

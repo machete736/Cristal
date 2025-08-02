@@ -1,0 +1,106 @@
+{% load static %} {# <-- AÑADE ESTA LÍNEA AL PRINCIPIO #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdminLTE 3 | Log in</title>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/fontawesome-free/css/all.min.css' %}"> {# <-- RUTA CORREGIDA #}
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}"> {# <-- RUTA CORREGIDA #}
+  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}"> {# <-- RUTA CORREGIDA #}
+</head>
+<body class="hold-transition login-page">
+<div class="login-box">
+  <div class="login-logo">
+    <a href="{% url 'home' %}"><b>Cristal</b>App</a> {# <-- CAMBIADO para que apunte a tu home de Django #}
+  </div>
+  <div class="card">
+    <div class="card-body login-card-body">
+      <p class="login-box-msg">Inicia sesión para comenzar tu sesión</p> {# <-- Texto traducido #}
+
+      <form action="" method="post"> {# <-- ACTION VACÍO, Django llenará la URL actual #}
+        {% csrf_token %} {# <-- ¡MUY IMPORTANTE! AÑADE ESTA LÍNEA DENTRO DEL FORMULARIO #}
+
+        {# Campos de Usuario y Contraseña de Django #}
+        {# 'form' será provisto por la LoginView de Django #}
+
+        {% if form.non_field_errors %} {# Muestra errores globales del formulario #}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="input-group mb-3">
+          {{ form.username }} {# Renderiza el campo de usuario #}
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-user"></span> {# Icono para usuario #}
+            </div>
+          </div>
+          {% if form.username.errors %} {# Errores específicos del campo de usuario #}
+            <div class="invalid-feedback d-block">
+                {% for error in form.username.errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="input-group mb-3">
+          {{ form.password }} {# Renderiza el campo de contraseña #}
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-lock"></span>
+            </div>
+          </div>
+          {% if form.password.errors %} {# Errores específicos del campo de contraseña #}
+            <div class="invalid-feedback d-block">
+                {% for error in form.password.errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="row">
+          <div class="col-8">
+            <div class="icheck-primary">
+              <input type="checkbox" id="remember" name="remember_me"> {# Añadido 'name' para el checkbox #}
+              <label for="remember">
+                Recordarme
+              </label>
+            </div>
+          </div>
+          <div class="col-4">
+            <button type="submit" class="btn btn-primary btn-block">Ingresar</button> {# Texto traducido #}
+          </div>
+          </div>
+      </form>
+
+      {# Mantén estos enlaces si vas a implementar sus vistas correspondientes #}
+      <div class="social-auth-links text-center mb-3">
+        <p>- O -</p> {# Texto traducido #}
+        <a href="#" class="btn btn-block btn-primary">
+          <i class="fab fa-facebook mr-2"></i> Iniciar sesión con Facebook
+        </a>
+        <a href="#" class="btn btn-block btn-danger">
+          <i class="fab fa-google-plus mr-2"></i> Iniciar sesión con Google+
+        </a>
+      </div>
+      <p class="mb-1">
+        <a href="{% url 'password_reset' %}">Olvidé mi contraseña</a> {# Asume que crearás una URL 'password_reset' #}
+      </p>
+      <p class="mb-0">
+        <a href="{% url 'register' %}" class="text-center">Registrar una nueva membresía</a> {# Asume que crearás una URL 'register' #}
+      </p>
+    </div>
+    </div>
+</div>
+<script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script> {# <-- RUTA CORREGIDA #}
+<script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script> {# <-- RUTA CORREGIDA #}
+<script src="{% static 'adminlte/dist/js/adminlte.min.js' %}"></script> {# <-- RUTA CORREGIDA #}
+</body>
+</html>

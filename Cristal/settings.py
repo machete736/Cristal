@@ -20,8 +20,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-#%n)$ehfbf0)-ozo)*ku$1_+r-div$=o-eiv328q2hhq_us9r-'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+DEFAULT_FROM_EMAIL = 'no-reply@tudominio.com'
+SERVER_EMAIL = 'no-reply@tudominio.com'
 DEBUG = True
 
 ALLOWED_HOSTS = []
@@ -37,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Cristal_app.apps.CristalAppConfig',
+    'django.contrib.sites',
 ]
 
 MIDDLEWARE = [
@@ -133,3 +136,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_REDIRECT_URL = 'home'
+
+LOGIN_URL = '/login/'
+
+LOGOUT_REDIRECT_URL = '/login/'
+SITE_ID = 1
