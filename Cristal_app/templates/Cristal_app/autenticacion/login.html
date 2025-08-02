@@ -1,106 +1,218 @@
-{% load static %} {# <-- AÑADE ESTA LÍNEA AL PRINCIPIO #}
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AdminLTE 3 | Log in</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hotel El Encanto | Iniciar sesión</title>
 
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <link rel="stylesheet" href="{% static 'adminlte/plugins/fontawesome-free/css/all.min.css' %}"> {# <-- RUTA CORREGIDA #}
-  <link rel="stylesheet" href="{% static 'adminlte/plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}"> {# <-- RUTA CORREGIDA #}
-  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}"> {# <-- RUTA CORREGIDA #}
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!-- AdminLTE & FontAwesome -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/fontawesome-free/css/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}" />
+
+  <style>
+    body, .login-page {
+      font-family: 'Roboto', sans-serif;
+      background-color: #343a40; /* Fondo plomo oscuro */
+      color: #f8f9fa;
+      height: 100vh;
+    }
+
+    .login-logo a {
+      font-family: 'Playfair Display', serif;
+      user-select: none;
+      text-decoration: none;
+    }
+
+    .login-logo span.hotel {
+      font-size: 48px;
+      font-weight: 700;
+      color: #ffffff;
+      display: block;
+      letter-spacing: 1.5px;
+    }
+
+    .login-logo span.encanto {
+      font-size: 28px;
+      font-style: italic;
+      color: #ffffff;
+      display: block;
+      margin-top: -8px;
+      letter-spacing: 0.5px;
+    }
+
+    .card {
+      background-color: transparent !important;
+      border: none;
+    }
+
+    .login-card-body {
+      background-color: #495057;
+      border-radius: 12px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+      padding: 30px;
+    }
+
+    .login-box-msg {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .input-group-text {
+      background: #fff !important;
+      border-left: 0 !important;
+    }
+
+    .input-group .form-control {
+      border-radius: 6px 0 0 6px !important;
+      padding: 12px 15px !important;
+      font-size: 16px;
+    }
+
+    .input-group-append .input-group-text {
+      border-radius: 0 6px 6px 0 !important;
+      font-size: 18px;
+      color: #007bff;
+    }
+
+    .btn-primary {
+      border-radius: 50px !important;
+      padding: 10px 45px !important;
+      font-weight: 600;
+      font-size: 18px;
+      box-shadow: 0 6px 12px rgba(0, 123, 255, 0.35);
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3 !important;
+      box-shadow: 0 8px 18px rgba(0, 86, 179, 0.55);
+    }
+
+    .form-check-label {
+      font-size: 14px;
+      user-select: none;
+      margin-left: 0.5rem;
+      white-space: nowrap;
+      color: #ffffff;
+    }
+
+    .form-check {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 20px;
+    }
+
+    .link-white {
+      font-size: 14px;
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      color: #ffffff;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .link-white:hover {
+      text-decoration: underline;
+    }
+
+  </style>
 </head>
-<body class="hold-transition login-page">
-<div class="login-box">
-  <div class="login-logo">
-    <a href="{% url 'home' %}"><b>Cristal</b>App</a> {# <-- CAMBIADO para que apunte a tu home de Django #}
-  </div>
-  <div class="card">
-    <div class="card-body login-card-body">
-      <p class="login-box-msg">Inicia sesión para comenzar tu sesión</p> {# <-- Texto traducido #}
 
-      <form action="" method="post"> {# <-- ACTION VACÍO, Django llenará la URL actual #}
-        {% csrf_token %} {# <-- ¡MUY IMPORTANTE! AÑADE ESTA LÍNEA DENTRO DEL FORMULARIO #}
+<body class="hold-transition login-page d-flex align-items-center justify-content-center">
+  <div class="login-box" style="width: 400px;">
+    <div class="login-logo">
+      <a href="{% url 'home' %}">
+        <span class="hotel">Hotel</span>
+        <span class="encanto">El Encanto</span>
+      </a>
+    </div>
 
-        {# Campos de Usuario y Contraseña de Django #}
-        {# 'form' será provisto por la LoginView de Django #}
+    <div class="card">
+      <div class="card-body login-card-body">
+        <p class="login-box-msg">Por favor, inicia sesión para continuar</p>
 
-        {% if form.non_field_errors %} {# Muestra errores globales del formulario #}
-            <div class="alert alert-danger" role="alert">
-                {% for error in form.non_field_errors %}
-                    {{ error }}
-                {% endfor %}
-            </div>
-        {% endif %}
+        <form action="" method="post" novalidate>
+          {% csrf_token %}
 
-        <div class="input-group mb-3">
-          {{ form.username }} {# Renderiza el campo de usuario #}
-          <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-user"></span> {# Icono para usuario #}
-            </div>
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">
+            {% for error in form.non_field_errors %}
+              {{ error }}
+            {% endfor %}
           </div>
-          {% if form.username.errors %} {# Errores específicos del campo de usuario #}
-            <div class="invalid-feedback d-block">
-                {% for error in form.username.errors %}
-                    {{ error }}
-                {% endfor %}
-            </div>
           {% endif %}
-        </div>
-        <div class="input-group mb-3">
-          {{ form.password }} {# Renderiza el campo de contraseña #}
-          <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-lock"></span>
+
+          <div class="input-group mb-4 shadow-sm">
+            {{ form.username }}
+            <div class="input-group-append">
+              <div class="input-group-text">
+                <span class="fas fa-user"></span>
+              </div>
             </div>
           </div>
-          {% if form.password.errors %} {# Errores específicos del campo de contraseña #}
-            <div class="invalid-feedback d-block">
-                {% for error in form.password.errors %}
-                    {{ error }}
-                {% endfor %}
-            </div>
+          {% if form.username.errors %}
+          <div class="invalid-feedback d-block mb-2">
+            {% for error in form.username.errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
           {% endif %}
-        </div>
 
-        <div class="row">
-          <div class="col-8">
-            <div class="icheck-primary">
-              <input type="checkbox" id="remember" name="remember_me"> {# Añadido 'name' para el checkbox #}
-              <label for="remember">
-                Recordarme
-              </label>
+          <div class="input-group mb-4 shadow-sm">
+            {{ form.password }}
+            <div class="input-group-append">
+              <div class="input-group-text">
+                <span class="fas fa-lock"></span>
+              </div>
             </div>
           </div>
-          <div class="col-4">
-            <button type="submit" class="btn btn-primary btn-block">Ingresar</button> {# Texto traducido #}
+          {% if form.password.errors %}
+          <div class="invalid-feedback d-block mb-2">
+            {% for error in form.password.errors %}
+              {{ error }}
+            {% endfor %}
           </div>
-          </div>
-      </form>
+          {% endif %}
 
-      {# Mantén estos enlaces si vas a implementar sus vistas correspondientes #}
-      <div class="social-auth-links text-center mb-3">
-        <p>- O -</p> {# Texto traducido #}
-        <a href="#" class="btn btn-block btn-primary">
-          <i class="fab fa-facebook mr-2"></i> Iniciar sesión con Facebook
-        </a>
-        <a href="#" class="btn btn-block btn-danger">
-          <i class="fab fa-google-plus mr-2"></i> Iniciar sesión con Google+
+          <div class="d-flex flex-column align-items-center">
+            <button type="submit" class="btn btn-primary mb-3">
+              Ingresar
+            </button>
+
+        <div class="form-check" style="display: flex; align-items: center; justify-content: flex-start;">
+  <input
+    type="checkbox"
+    id="remember"
+    name="remember_me"
+    class="form-check-input"
+  />
+  <label for="remember" class="form-check-label" style="margin-left: 0.5rem; white-space: nowrap;">Recordarme</label>
+</div>
+
+          </div>
+        </form>
+
+        <a href="{% url 'password_reset' %}" class="link-white">
+          ¿Olvidaste tu contraseña?
         </a>
       </div>
-      <p class="mb-1">
-        <a href="{% url 'password_reset' %}">Olvidé mi contraseña</a> {# Asume que crearás una URL 'password_reset' #}
-      </p>
-      <p class="mb-0">
-        <a href="{% url 'register' %}" class="text-center">Registrar una nueva membresía</a> {# Asume que crearás una URL 'register' #}
-      </p>
     </div>
-    </div>
-</div>
-<script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script> {# <-- RUTA CORREGIDA #}
-<script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script> {# <-- RUTA CORREGIDA #}
-<script src="{% static 'adminlte/dist/js/adminlte.min.js' %}"></script> {# <-- RUTA CORREGIDA #}
+  </div>
+
+  <!-- Scripts -->
+  <script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
+  <script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'adminlte/dist/js/adminlte.min.js' %}"></script>
 </body>
 </html>
