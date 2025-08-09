@@ -1,0 +1,13 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% block title %}Checkout{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <p>¿Confirmas el checkout de la habitación <strong>{{ habitacion.numero }}</strong>?</p>
+    <form method="post">{% csrf_token %}
+      <a class="btn btn-secondary" href="{% url 'recepcion' %}">Cancelar</a>
+      <button class="btn btn-danger" type="submit">Confirmar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

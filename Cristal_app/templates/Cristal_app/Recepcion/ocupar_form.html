@@ -1,0 +1,122 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+{% block title %}Ocupar Habitación{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <h1 class="m-0">Ocupar Habitación {{ habitacion.numero }}</h1>
+  <p class="text-muted mb-0">Estado actual: {{ habitacion.get_estado_display }}</p>
+  <p class="text-muted">Precio por noche: {{ habitacion.precio_noche }} Bs</p>
+</div>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  <div class="row">
+    <!-- Datos de la Reserva -->
+    <div class="col-lg-8">
+      <div class="card card-primary">
+        <div class="card-header"><h3 class="card-title">Datos de la reserva</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>Cliente</label>
+            {{ rform.cliente }}
+            {% for e in rform.cliente.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-group">
+            <label>Fecha y hora de salida</label>
+            {{ rform.fecha_salida }}
+            <small class="form-text text-muted">Puedes modificarla según lo que indique el cliente.</small>
+            {% for e in rform.fecha_salida.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-group">
+            <label>Descuento (%)</label>
+            {{ rform.descuento_porcentaje }}
+          </div>
+
+          <div class="form-group">
+            <label>Observaciones</label>
+            {{ rform.observaciones }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Acompañantes -->
+      <div class="card card-secondary">
+        <div class="card-header"><h3 class="card-title">Acompañantes</h3></div>
+        <div class="card-body">
+          {{ aformset.management_form }}
+          <div id="acompanantes-forms">
+            {% for f in aformset.forms %}
+              <div class="border rounded p-2 mb-2">
+                <div class="form-row">
+                  <div class="col-md-7">
+                    <label>Nombre completo</label>
+                    {{ f.nombre_completo }}
+                  </div>
+                  <div class="col-md-3">
+                    <label>DNI</label>
+                    {{ f.dni }}
+                  </div>
+                  <div class="col-md-2">
+                    {% if f.instance.pk %}
+                      <label>Eliminar</label>
+                      {{ f.DELETE }}
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm()">+ Agregar acompañante</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pago -->
+    <div class="col-lg-4">
+      <div class="card card-info">
+        <div class="card-header"><h3 class="card-title">Registrar pago</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>Método de pago</label>
+            {{ pform.tipo_pago }}
+          </div>
+          <div class="form-group">
+            <label>Monto recibido</label>
+            {{ pform.monto_recibido }}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="{% url 'recepcion' %}" class="btn btn-secondary">Volver</a>
+        <button type="submit" class="btn btn-primary">Registrar</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  // Duplicar el último form del formset en el front (simple y suficiente)
+  function addForm() {
+    const container = document.getElementById('acompanantes-forms');
+    const totalForms = document.getElementById('id_acompanantes-TOTAL_FORMS');
+    const index = parseInt(totalForms.value, 10);
+    const last = container.querySelector('.border:last-of-type');
+    const clone = last ? last.cloneNode(true) : null;
+    if (!clone) return;
+    clone.querySelectorAll('input').forEach(function (input) {
+      input.value = '';
+      input.name = input.name.replace(/-(\d+)-/g, `-${index}-`);
+      input.id   = input.id.replace(/-(\d+)-/g, `-${index}-`);
+    });
+    const del = clone.querySelector('input[type="checkbox"]');
+    if (del) del.checked = false;
+    container.appendChild(clone);
+    totalForms.value = index + 1;
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Habitación{% endblock %}
+{% block content %}
+<div class="card card-primary">
+  <div class="card-header">
+    <h3 class="card-title">{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Habitación</h3>
+  </div>
+  <form method="post" enctype="multipart/form-data">
+    <div class="card-body">
+      {% csrf_token %}
+      {{ form.as_p }}
+    </div>
+    <div class="card-footer">
+      <a href="{% url 'habitacion_list' %}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">
+        {% if form.instance.pk %}Guardar Cambios{% else %}Crear Habitación{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

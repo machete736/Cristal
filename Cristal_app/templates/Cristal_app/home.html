@@ -1,10 +1,100 @@
-{# Cristal_app/templates/Cristal_app/home.html #}
 {% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Panel de Control{% endblock %}
 
-{% block title %}Dashboard de Cristal App{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
-{% block breadcrumb_active %}Dashboard{% endblock %}
 {% block content %}
-<h1>hola mundo</h1>
-<h1>hola mundo</h1>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ total_habitaciones }}</h3>
+                    <p>Total de Habitaciones</p>
+                </div>
+                <div class="icon">
+                    <i class="ion ion-home"></i>
+                </div>
+                <a href="{% url 'habitacion_list' %}" class="small-box-footer">
+                    Más información <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>{{ habitaciones_disponibles }}</h3>
+                    <p>Habitaciones Disponibles</p>
+                </div>
+                <div class="icon">
+                    <i class="ion ion-checkmark-round"></i>
+                </div>
+                <a href="{% url 'recepcion' %}" class="small-box-footer">
+                    Ir a Recepción <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>{{ habitaciones_ocupadas }}</h3>
+                    <p>Habitaciones Ocupadas</p>
+                </div>
+                <div class="icon">
+                    <i class="ion ion-person-add"></i>
+                </div>
+                <a href="{% url 'recepcion' %}" class="small-box-footer">
+                    Ir a Recepción <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>{{ habitaciones_limpieza }}</h3>
+                    <p>Habitaciones en Limpieza</p>
+                </div>
+                <div class="icon">
+                    <i class="ion ion-close-round"></i>
+                </div>
+                <a href="{% url 'recepcion' %}" class="small-box-footer">
+                    Ir a Recepción <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 col-md-12">
+            <div class="info-box bg-gradient-primary">
+                <span class="info-box-icon"><i class="fas fa-calendar-check"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Reservas en la Semana</span>
+                    <span class="info-box-number">{{ reservas_semanales }}</span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 100%"></div>
+                    </div>
+                    <span class="progress-description">
+                        Periodo: {{ start_of_week|date:"d M" }} - {{ end_of_week|date:"d M" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-12">
+            <div class="info-box bg-gradient-success">
+                <span class="info-box-icon"><i class="fas fa-dollar-sign"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Ingresos en la Semana</span>
+                    <span class="info-box-number">**Bs.** {{ ingresos_semanales|floatformat:2|intcomma }}</span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 100%"></div>
+                    </div>
+                    <span class="progress-description">
+                        Periodo: {{ start_of_week|date:"d M" }} - {{ end_of_week|date:"d M" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

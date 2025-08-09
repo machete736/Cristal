@@ -1,0 +1,46 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+
+{% block title %}Habitaciones{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title">Todas las Habitaciones</h3>
+    <a href="{% url 'habitacion_create' %}" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus"></i> Añadir Habitación
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="thead-light">
+        <tr>
+          <th>#</th><th>Número</th><th>Piso</th><th>Tipo</th><th>Precio/Noche</th><th>Activo</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for hab in habitaciones %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ hab.numero }}</td>
+          <td>Piso {{ hab.piso.numero }}</td>
+          <td>{{ hab.tipo.nombre }}</td>
+          <td>{{ hab.precio_noche }}</td>
+          <td>
+            {% if hab.activo %}
+              <span class="badge badge-success">Sí</span>
+            {% else %}
+              <span class="badge badge-danger">No</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'habitacion_update' hab.pk %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+            <a href="{% url 'habitacion_delete' hab.pk %}" class="btn btn-danger  btn-sm"><i class="fas fa-trash"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center">No hay habitaciones registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

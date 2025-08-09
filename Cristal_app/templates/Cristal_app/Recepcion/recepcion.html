@@ -1,0 +1,368 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+{% block title %}Recepción{% endblock %}
+
+{% block content %}
+<style>
+  :root{
+    --verde:#00c853;        /* Dispnible */
+    --rojo:#d50000;         /* Ocupada   */
+    --amarillo:#ffc400;     /* Limpieza  */
+    --gris:#f4f6f9;
+    --texto:#2c3e50;
+  }
+
+  .card-room{
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 8px 18px rgba(0,0,0,.08);
+    transition:.15s ease-in-out;
+    background:#fff;
+  }
+  .card-room:hover{
+    transform:translateY(-4px);
+    box-shadow:0 12px 26px rgba(0,0,0,.12);
+  }
+  .borde-disponible{ border-top:8px solid var(--verde); }
+  .borde-ocupada{    border-top:8px solid var(--rojo); }
+  .borde-limpieza{   border-top:8px solid var(--amarillo); }
+
+  .badge-estado{
+    font-weight:700; letter-spacing:.5px;
+    padding:.45rem .9rem; border-radius:999px;
+    box-shadow:0 4px 10px rgba(0,0,0,.08);
+  }
+  .badge-disponible{ background:var(--verde); color:#fff; }
+  .badge-ocupada{    background:var(--rojo); color:#fff; }
+  .badge-limpieza{   background:var(--amarillo); color:#111; }
+
+  .titulo-hab{ font-size:1.35rem; font-weight:800; color:var(--texto); }
+  .dato{ margin-bottom:.4rem; color:#34495e; }
+  .dato b{ color:#111; }
+
+  .clock-pill{
+    display:inline-flex; gap:.45rem; align-items:center;
+    border-radius:999px; padding:.4rem .75rem;
+    background:#eef2ff; color:#1b3a57; font-weight:700;
+    box-shadow: inset 0 0 0 2px #ccd8ff;
+  }
+
+  /* botones grandes */
+  .btn-accion{ font-weight:700; border-radius:10px; }
+  .btn-consumos{ background:#546e7a; color:#fff; }
+
+  /* modal */
+  .modal-header{ background:#f8f9ff; }
+  .tabla-detalle th{ background:#f1f3ff; }
+</style>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">Seleccionar Piso</h3>
+      </div>
+      <div class="card-body">
+        {% for p in pisos %}
+          <a href="{% url 'recepcion' %}?piso={{ p.pk }}"
+             class="btn {% if p.pk == piso_actual.pk %}btn-primary{% else %}btn-secondary{% endif %} m-1">
+            Piso {{ p.numero }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="mt-2 mb-3">Habitaciones del Piso {% if piso_actual %}{{ piso_actual.numero }}{% else %}—{% endif %}</h2>
+
+<div class="row">
+  {% for habitacion in habitaciones %}
+    {% with estado=habitacion.estado|lower %}
+    <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-stretch mb-4">
+      <div class="card-room w-100
+          {% if estado == 'disponible' %}borde-disponible
+          {% elif estado == 'ocupada' %}borde-ocupada
+          {% else %}borde-limpieza{% endif %}">
+        <div class="p-3 d-flex justify-content-between align-items-center">
+          <div class="titulo-hab">Habitación {{ habitacion.numero }}</div>
+          <span class="badge-estado
+             {% if estado == 'disponible' %}badge-disponible
+             {% elif estado == 'ocupada' %}badge-ocupada
+             {% else %}badge-limpieza{% endif %}">
+            {{ habitacion.get_estado_display }}
+          </span>
+        </div>
+
+        <div class="px-3 pb-2">
+          <div class="dato"><b>Tipo:</b> {{ habitacion.tipo.nombre }}</div>
+
+          {# Solo mostrar el cliente y el cronómetro si hay una reserva activa #}
+          {% if habitacion.reserva_activa %}
+            <div class="dato"><b>Cliente:</b> {{ habitacion.reserva_activa.cliente.nombrecompleto }}</div>
+            <div class="mt-2">
+              <span class="clock-pill">
+                <i class="far fa-clock"></i>
+                <span class="countdown"
+                      data-end="{{ habitacion.reserva_activa.fecha_salida|date:'c' }}">
+                  —:—:—
+                </span>
+              </span>
+
+              {# botón detalles #}
+              <button type="button" class="btn btn-link btn-sm ml-2 p-0"
+                      data-toggle="modal" data-target="#modalDetalles-{{ habitacion.id }}">
+                Ver detalles
+              </button>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="px-3 py-3 bg-light d-flex justify-content-between align-items-center">
+          <div>
+            {% if habitacion.estado == 'DISPONIBLE' %}
+              <a href="{% url 'ocupar_habitacion' habitacion.pk %}?piso_next={{ piso_actual.pk }}" class="btn btn-primary btn-accion">
+                <i class="fas fa-door-open"></i> Ocupar
+              </a>
+            {% elif habitacion.estado == 'OCUPADA' %}
+              <a href="{% url 'checkout_habitacion' habitacion.pk %}" class="btn btn-info btn-accion">
+                <i class="fas fa-bed"></i> Checkout
+              </a>
+              <a href="{% url 'marcar_limpieza' habitacion.pk %}" class="btn btn-warning btn-accion">
+                <i class="fas fa-broom"></i> Limpieza
+              </a>
+              <button type="button" class="btn btn-consumos btn-accion"
+                      data-toggle="modal" data-target="#modalConsumo-{{ habitacion.id }}">
+                <i class="fas fa-utensils"></i> Consumos
+              </button>
+            {% elif habitacion.estado == 'LIMPIEZA' %}
+              <a href="{% url 'marcar_disponible' habitacion.pk %}" class="btn btn-success btn-accion">
+                <i class="fas fa-check"></i> Disponible
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ===================== MODAL: DETALLES ===================== #}
+    {% if habitacion.reserva_activa %}
+    <div class="modal fade" id="modalDetalles-{{ habitacion.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Detalle de la Habitación {{ habitacion.numero }}</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><b>Cliente:</b> {{ habitacion.reserva_activa.cliente.nombrecompleto }}</p>
+                  <p><b>Entrada:</b> {{ habitacion.reserva_activa.fecha_entrada|date:"d/m/Y H:i" }}</p>
+                  <p><b>Salida:</b> {{ habitacion.reserva_activa.fecha_salida|date:"d/m/Y H:i" }}</p>
+                  <p>
+                    <span class="clock-pill">
+                      <i class="far fa-clock"></i>
+                      <span class="countdown"
+                            data-end="{{ habitacion.reserva_activa.fecha_salida|date:'c' }}">
+                          —:—:—
+                      </span>
+                    </span>
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <p><b>Acompañantes ({{ habitacion.reserva_activa.acompanantes.all|length }}):</b>
+                    {% for a in habitacion.reserva_activa.acompanantes.all %}
+                      {{ a.nombre_completo }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}—{% endfor %}
+                  </p>
+                  <p><b>Precio Noche:</b> {{ habitacion.precio_noche|floatformat:2 }} Bs</p>
+                </div>
+              </div>
+
+              <hr>
+              <h6 class="mb-2">Consumos</h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered tabla-detalle">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th class="text-center">Cant.</th>
+                      <th class="text-right">P. Unit</th>
+                      <th class="text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if habitacion.reserva_activa.venta %}
+                      {% for d in habitacion.reserva_activa.venta.detalleventa_set.all %}
+                        <tr>
+                          <td>{{ d.producto.nombre }}</td>
+                          <td class="text-center">{{ d.cantidad }}</td>
+                          <td class="text-right">{{ d.precio_unitario|floatformat:2 }}</td>
+                          <td class="text-right">{{ d.subtotal|floatformat:2 }}</td>
+                        </tr>
+                      {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">Sin consumos registrados.</td></tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr><td colspan="4" class="text-center text-muted">Sin consumos registrados.</td></tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <p><b>Costo habitación:</b> {{ habitacion.reserva_activa.costo_habitacion|default:"0.00"|floatformat:2 }} Bs</p>
+                  <p><b>Total consumos:</b> {{ habitacion.reserva_activa.costo_productos|default:"0.00"|floatformat:2 }} Bs</p>
+                </div>
+                <div class="col-md-6 text-right">
+                  <h5><b>Total:</b> {{ habitacion.reserva_activa.costo_total|default:"0.00"|floatformat:2 }} Bs</h5>
+                </div>
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ===================== MODAL: CONSUMOS (si está ocupada) ===================== #}
+    {% if habitacion.estado == 'OCUPADA' %}
+    <div class="modal fade" id="modalConsumo-{{ habitacion.id }}" tabindex="-1"
+         role="dialog" aria-labelledby="consumoLabel-{{ habitacion.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <form method="post" action="{% url 'registrar_consumo' habitacion.id %}">
+            {% csrf_token %}
+
+            {# volver al mismo piso al terminar #}
+            {% if piso_actual %}
+              <input type="hidden" name="next" value="{% url 'recepcion' %}?piso={{ piso_actual.pk }}">
+            {% endif %}
+
+            <div class="modal-header">
+              <h5 class="modal-title" id="consumoLabel-{{ habitacion.id }}">
+                Registrar consumos — Habitación {{ habitacion.numero }}
+              </h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+
+            <div class="modal-body">
+              <p class="text-muted mb-2">
+                Cliente: <b>{{ habitacion.reserva_activa.cliente.nombrecompleto }}</b>
+                · Salida: <b>{{ habitacion.reserva_activa.fecha_salida|date:"d/m/Y H:i" }}</b>
+              </p>
+
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th style="width:55%">Producto</th>
+                      <th style="width:20%" class="text-center">Cantidad</th>
+                      <th style="width:10%"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rows-{{ habitacion.id }}" data-room="{{ habitacion.id }}">
+                    <tr class="consumo-row">
+                      <td>
+                        <select name="producto_id[]" class="form-control" required aria-label="Producto">
+                          <option value="" disabled selected>Seleccione…</option>
+                          {% for p in productos %}
+                            <option value="{{ p.id }}">
+                              {{ p.nombre }} — {{ p.precio_venta|floatformat:2 }} Bs (Stock: {{ p.stock }})
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                      <td>
+                        <input type="number" name="cantidad[]" class="form-control text-center"
+                               min="1" value="1" required aria-label="Cantidad">
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-row" aria-label="Quitar fila">
+                          &times;
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <button type="button" class="btn btn-outline-primary btn-sm add-row"
+                      data-target="#rows-{{ habitacion.id }}">
+                <i class="fas fa-plus"></i> Añadir producto
+              </button>
+            </div>
+
+            <div class="modal-footer">
+              <button class="btn btn-secondary" data-dismiss="modal" type="button">Cancelar</button>
+              <button class="btn btn-primary" type="submit">Guardar consumos</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+
+    {% endwith %}
+  {% empty %}
+    <div class="col-12 text-center text-muted">No hay habitaciones en este piso.</div>
+  {% endfor %}
+</div>
+
+<script>
+  // Cuenta regresiva
+  function updateCountdown(){
+    document.querySelectorAll('.countdown').forEach(function(el){
+      const end = el.getAttribute('data-end');
+      if(!end) return;
+      const endTime = new Date(end).getTime();
+      const now = Date.now();
+      let diff = Math.max(0, endTime - now);
+
+      const d = Math.floor(diff / (1000*60*60*24));
+      diff -= d*(1000*60*60*24);
+      const h = Math.floor(diff / (1000*60*60));
+      diff -= h*(1000*60*60);
+      const m = Math.floor(diff / (1000*60));
+      diff -= m*(1000*60);
+      const s = Math.floor(diff / 1000);
+
+      el.textContent = `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+    });
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // Filas dinámicas en modal de consumos
+  document.addEventListener('click', function(ev){
+    if(ev.target.closest('.add-row')){
+      const btn = ev.target.closest('.add-row');
+      const targetId = btn.getAttribute('data-target');
+      const target = document.querySelector(targetId);
+      const first = target.querySelector('.consumo-row');
+      const clone = first.cloneNode(true);
+
+      // limpiar selección
+      clone.querySelectorAll('select, input').forEach(el=>{
+        if(el.tagName==='SELECT'){ el.selectedIndex = 0; }
+        if(el.tagName==='INPUT'){ el.value = 1; }
+      });
+      target.appendChild(clone);
+    }
+    if(ev.target.closest('.remove-row')){
+      const row = ev.target.closest('tr');
+      const tbody = row.parentElement;
+      if(tbody.children.length > 1) row.remove();
+    }
+  });
+</script>
+{% endblock %}

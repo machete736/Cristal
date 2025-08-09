@@ -1,0 +1,32 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% block title %}Tipos de Habitación{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Tipos de Habitación</h3>
+    <div class="card-tools">
+      <a href="{% url 'tipohabitacion_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> Añadir Tipo
+      </a>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-striped mb-0">
+      <thead><tr><th>#</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for obj in object_list %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ obj.nombre }}</td>
+          <td>{% if obj.activo %}<span class="badge badge-success">Sí</span>{% else %}<span class="badge badge-danger">No</span>{% endif %}</td>
+          <td>
+            <a href="{% url 'tipohabitacion_update' obj.pk %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+            <a href="{% url 'tipohabitacion_delete' obj.pk %}" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></a>
+          </td>
+        </tr>
+        {% empty %}<tr><td colspan="4">No hay registros.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

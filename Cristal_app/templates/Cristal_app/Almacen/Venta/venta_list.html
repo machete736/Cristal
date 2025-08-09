@@ -1,0 +1,63 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+
+{% block title %}Lista de Ventas{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Todas las Ventas</h3>
+        <div class="card-tools">
+            <a href="{% url 'venta_create' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Añadir Venta
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Fecha</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for venta in ventas %}
+                <tr>
+                    <td>{{ venta.pk }}</td>
+                    <td>{{ venta.usuario.username|default:"N/A" }}</td>
+                    <td>{{ venta.fecha_venta|date:"Y-m-d H:i" }}</td>
+                    <td>${{ venta.total_venta }}</td>
+                    <td>
+                        <a href="{% url 'venta_update' venta.pk %}" class="btn btn-warning btn-sm" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'venta_delete' venta.pk %}" class="btn btn-danger btn-sm" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No hay ventas registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

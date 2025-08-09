@@ -1,0 +1,22 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Piso{% endblock %}
+{% block content %}
+<div class="card card-primary">
+  <div class="card-header">
+    <h3 class="card-title">{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Piso</h3>
+  </div>
+  <form method="post">
+    <div class="card-body">
+      {% csrf_token %}
+      {{ form.as_p }}
+    </div>
+    <div class="card-footer">
+      <a href="{% url 'piso_list' %}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">
+        {% if form.instance.pk %}Guardar Cambios{% else %}Crear Piso{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

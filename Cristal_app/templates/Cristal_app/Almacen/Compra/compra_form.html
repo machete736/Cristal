@@ -1,0 +1,53 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+
+{% block title %}Formulario de Compra{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Crear Compra</h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h4>Datos de la Compra</h4>
+            {{ form.as_p }}
+
+            <hr>
+
+            <h4>Detalles de la Compra</h4>
+            {{ formset.management_form }}
+            <table class="table table-bordered" id="formset-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Eliminar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in formset %}
+                        <tr>
+                            <td>{{ form.producto }}</td>
+                            <td>{{ form.cantidad }}</td>
+                            <td>{{ form.costo_unitario }}</td>
+                            <td>{{ form.DELETE }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="form-group mt-3">
+                <a href="{% url 'compra_list' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}
