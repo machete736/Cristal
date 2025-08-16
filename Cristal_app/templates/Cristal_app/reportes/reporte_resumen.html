@@ -1,0 +1,63 @@
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Reporte de Resumen{% endblock %}
+{% block content %}
+<h2>Reporte de Resumen</h2>
+
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Seleccionar Periodo</h3>
+    </div>
+    <div class="card-body">
+        <form action="{% url 'reporte_resumen' %}" method="GET" class="form-inline">
+            <div class="form-group mr-2">
+                <label for="periodo">Filtrar por:</label>
+                <select name="periodo" id="periodo" class="form-control ml-2">
+                    <option value="dia" {% if periodo_seleccionado == 'dia' %}selected{% endif %}>Día</option>
+                    <option value="semana" {% if periodo_seleccionado == 'semana' %}selected{% endif %}>Semana</option>
+                    <option value="mes" {% if periodo_seleccionado == 'mes' %}selected{% endif %}>Mes</option>
+                    <option value="anual" {% if periodo_seleccionado == 'anual' %}selected{% endif %}>Año</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a href="{% url 'generar_pdf_resumen' %}?periodo={{ periodo_seleccionado }}" class="btn btn-danger ml-2" target="_blank">
+                <i class="fas fa-file-pdf"></i> Imprimir PDF
+            </a>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h3 class="card-title">Resumen del Periodo</h3>
+    </div>
+    <div class="card-body">
+        <p><strong>Periodo:</strong> Del {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y" }}</p>
+    </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Detalles de Ingresos y Consumos</h3>
+  </div>
+  <div class="card-body">
+    <h4>Ingresos</h4>
+    <p><strong>Ingresos por Ventas:</strong> {{ ventas|floatformat:2 }} Bs</p>
+    <p><strong>Ingresos por Reservas:</strong> {{ reservas|floatformat:2 }} Bs</p>
+    <hr>
+    <h3><strong>Total de Ingresos: {{ total_ingresos|floatformat:2 }} Bs</strong></h3>
+    
+    <h4 class="mt-4">Consumos</h4>
+    <p><strong>Total de Consumos:</strong> {{ consumos|floatformat:2 }} Bs</p>
+  </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">Información del Reporte</h3>
+    </div>
+    <div class="card-body">
+        <p><strong>Reporte generado por:</strong> {{ usuario.get_full_name|default:usuario.username }}</p>
+        <p><strong>Fecha de generación:</strong> {{ fecha_generacion|date:"d/m/Y" }}</p>
+    </div>
+</div>
+{% endblock %}

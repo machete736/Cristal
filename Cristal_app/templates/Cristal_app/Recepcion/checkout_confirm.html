@@ -1,13 +1,36 @@
-{% extends 'Cristal_app/base_adminlte.html' %}
-{% block title %}Checkout{% endblock %}
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Checkout Hab {{ habitacion.numero }}{% endblock %}
 {% block content %}
-<div class="card">
-  <div class="card-body">
-    <p>¿Confirmas el checkout de la habitación <strong>{{ habitacion.numero }}</strong>?</p>
-    <form method="post">{% csrf_token %}
-      <a class="btn btn-secondary" href="{% url 'recepcion' %}">Cancelar</a>
-      <button class="btn btn-danger" type="submit">Confirmar</button>
-    </form>
+<section class="content-header">
+  <h1>Checkout | Habitación {{ habitacion.numero }}</h1>
+</section>
+
+<section class="content">
+  <div class="box box-danger">
+    <div class="box-header with-border">
+      <h3 class="box-title">Confirmar salida</h3>
+    </div>
+    <div class="box-body">
+      <p><strong>Cliente:</strong> {{ reserva.cliente.nombrecompleto }}</p>
+      <p><strong>Entrada:</strong> {{ reserva.fecha_entrada|date:"Y-m-d H:i" }}</p>
+      <p><strong>Salida actual:</strong> {{ reserva.fecha_salida|date:"Y-m-d H:i" }}</p>
+      <hr/>
+      <p><strong>Costo habitación:</strong> {{ reserva.costo_habitacion }}</p>
+      <p><strong>Consumos:</strong> {{ reserva.costo_productos }}</p>
+      <p><strong>Descuento:</strong> {{ reserva.descuento_monto }}</p>
+      <p><strong>Total:</strong> {{ reserva.costo_total }}</p>
+      <p><strong>Pagado:</strong> {{ reserva.total_pagado }}</p>
+      <p style="color:#d9534f"><strong>A deuda:</strong> {{ reserva.deuda }}</p>
+    </div>
+    <div class="box-footer">
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'recepcion' %}" class="btn btn-default">Cancelar</a>
+        <button class="btn btn-danger pull-right" type="submit">
+          <i class="fa fa-sign-out"></i> Confirmar checkout
+        </button>
+      </form>
+    </div>
   </div>
-</div>
+</section>
 {% endblock %}

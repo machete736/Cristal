@@ -1,0 +1,19 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% load static %}
+
+{% block title %}Editar Tarifa{% endblock %}
+
+{% block content %}
+<h1>{% if form.instance.pk %}Editar{% else %}Agregar{% endif %} Tarifa</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <button type="submit" class="btn btn-primary">
+        {% if form.instance.pk %}Guardar Cambios{% else %}Crear Tarifa{% endif %}
+    </button>
+    <a href="{% url 'gestionar_tarifas' pk=form.instance.tipo_habitacion.pk %}" class="btn btn-secondary">Cancelar</a>
+</form>
+
+{% endblock %}

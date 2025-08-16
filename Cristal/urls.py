@@ -1,8 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include, reverse_lazy
-from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
-
+from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(url='/login/', permanent=False)),
@@ -31,6 +30,19 @@ urlpatterns = [
          name='password_reset_confirm'),
 
     path('reset/done/',
-         auth_views.PasswordResetCompleteView.as_view(template_name='Cristal_app/autenticacion/password_reset_complete.html'),
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='Cristal_app/autenticacion/password_reset_complete.html'),
          name='password_reset_complete'),
+    path('password_change/',
+         auth_views.PasswordChangeView.as_view(
+             template_name='Cristal_app/autenticacion/password_change_form.html',
+             success_url=reverse_lazy('password_change_done')
+         ),
+         name='password_change'),
+
+    path('password_change/done/',
+         auth_views.PasswordChangeDoneView.as_view(
+             template_name='Cristal_app/autenticacion/password_change_done.html'
+         ),
+         name='password_change_done'),
 ]

@@ -1,24 +1,26 @@
-{% extends 'Cristal_app/base_adminlte.html' %}
-{% load static %}
-{% block title %}Marcar como Disponible{% endblock %}
-
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Marcar Disponible{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card card-success">
-            <div class="card-header">
-                <h3 class="card-title">Marcar como Disponible</h3>
-            </div>
-            <div class="card-body">
-                <p>¿Estás seguro de que la **Habitación {{ habitacion.numero }}** está lista para ser usada?</p>
-                <p>Al confirmar, su estado cambiará a **Disponible**.</p>
-                <form method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success">Sí, marcar como Disponible</button>
-                    <a href="{% url 'recepcion' %}" class="btn btn-secondary">Cancelar</a>
-                </form>
-            </div>
-        </div>
+<section class="content-header">
+  <h1>Marcar Disponible | Habitación {{ habitacion.numero }}</h1>
+</section>
+<section class="content">
+  <div class="box box-success">
+    <div class="box-header with-border">
+      <h3 class="box-title">Confirmar</h3>
     </div>
-</div>
+    <div class="box-body">
+      <p>¿Poner la habitación <strong>{{ habitacion.numero }}</strong> en estado <strong>DISPONIBLE</strong>?</p>
+    </div>
+    <div class="box-footer">
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'recepcion' %}" class="btn btn-default">Cancelar</a>
+        <button class="btn btn-success pull-right" type="submit">
+          <i class="fa fa-check"></i> Sí, marcar disponible
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
 {% endblock %}

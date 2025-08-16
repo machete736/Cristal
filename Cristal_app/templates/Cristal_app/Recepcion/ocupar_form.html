@@ -1,122 +1,296 @@
-{% extends 'Cristal_app/base_adminlte.html' %}
+{% extends "Cristal_app/base_adminlte.html" %}
 {% load static %}
-{% block title %}Ocupar Habitación{% endblock %}
+
+{% block title %}Ocupar Habitación {{ habitacion.numero }}{% endblock %}
 
 {% block content %}
-<div class="content-header">
-  <h1 class="m-0">Ocupar Habitación {{ habitacion.numero }}</h1>
-  <p class="text-muted mb-0">Estado actual: {{ habitacion.get_estado_display }}</p>
-  <p class="text-muted">Precio por noche: {{ habitacion.precio_noche }} Bs</p>
-</div>
+<section class="content-header">
+    <h1>
+        HABITACIÓN N° {{ habitacion.numero }} | {{ habitacion.tipo.nombre|default:"" }}
+        <small>Recepción</small>
+    </h1>
+</section>
 
-<form method="post" novalidate>
-  {% csrf_token %}
+<section class="content">
 
-  <div class="row">
-    <!-- Datos de la Reserva -->
-    <div class="col-lg-8">
-      <div class="card card-primary">
-        <div class="card-header"><h3 class="card-title">Datos de la reserva</h3></div>
-        <div class="card-body">
-          <div class="form-group">
-            <label>Cliente</label>
-            {{ rform.cliente }}
-            {% for e in rform.cliente.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          </div>
-
-          <div class="form-group">
-            <label>Fecha y hora de salida</label>
-            {{ rform.fecha_salida }}
-            <small class="form-text text-muted">Puedes modificarla según lo que indique el cliente.</small>
-            {% for e in rform.fecha_salida.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          </div>
-
-          <div class="form-group">
-            <label>Descuento (%)</label>
-            {{ rform.descuento_porcentaje }}
-          </div>
-
-          <div class="form-group">
-            <label>Observaciones</label>
-            {{ rform.observaciones }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Acompañantes -->
-      <div class="card card-secondary">
-        <div class="card-header"><h3 class="card-title">Acompañantes</h3></div>
-        <div class="card-body">
-          {{ aformset.management_form }}
-          <div id="acompanantes-forms">
-            {% for f in aformset.forms %}
-              <div class="border rounded p-2 mb-2">
-                <div class="form-row">
-                  <div class="col-md-7">
-                    <label>Nombre completo</label>
-                    {{ f.nombre_completo }}
-                  </div>
-                  <div class="col-md-3">
-                    <label>DNI</label>
-                    {{ f.dni }}
-                  </div>
-                  <div class="col-md-2">
-                    {% if f.instance.pk %}
-                      <label>Eliminar</label>
-                      {{ f.DELETE }}
-                    {% endif %}
-                  </div>
+    <div class="box box-default">
+        <div class="box-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <ul>
+                    {% for t in tarifas %}
+                        <li data-precio="{{ t.precio }}" data-tipo="{{ t.tipo }}" data-duracion="{{ t.duracion }}">
+                            • {{ t }}
+                        </li>
+                    {% empty %}
+                        <li>No hay tarifas definidas.</li>
+                    {% endfor %}
+                    </ul>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
-          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addForm()">+ Agregar acompañante</button>
+                <div class="col-md-6">
+                    <p><strong>DESCRIPCIÓN:</strong></p>
+                    <p>{{ habitacion.tipo.descripcion|default:"Sin descripción." }}</p>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Pago -->
-    <div class="col-lg-4">
-      <div class="card card-info">
-        <div class="card-header"><h3 class="card-title">Registrar pago</h3></div>
-        <div class="card-body">
-          <div class="form-group">
-            <label>Método de pago</label>
-            {{ pform.tipo_pago }}
-          </div>
-          <div class="form-group">
-            <label>Monto recibido</label>
-            {{ pform.monto_recibido }}
-          </div>
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="box box-primary">
+            <div class="box-header with-border"><h3 class="box-title">Datos de la Ocupación</h3></div>
+            <div class="box-body">
+                <div class="row">
+                    <div class="col-sm-6 form-group">
+                        <label>Cliente</label>
+                        {{ rform.cliente }}
+                        {% for error in rform.cliente.errors %}<span class="text-danger">{{ error }}</span>{% endfor %}
+                        <br>
+                        <button type="button" id="btn-nuevo-cliente" class="btn btn-sm btn-success" style="margin-top: 5px;">
+                            <i class="fa fa-plus"></i> Registrar Nuevo Cliente
+                        </button>
+                    </div>
+                    <div class="col-sm-3 form-group">
+                        <label>Tarifa / Precio</label>
+                        {{ rform.tarifa }}
+                        {% for error in rform.tarifa.errors %}<span class="text-danger">{{ error }}</span>{% endfor %}
+                    </div>
+                    <div class="col-sm-3 form-group">
+                        <label>Fecha Entrada</label>
+                        {{ rform.fecha_entrada }}
+                        {% for error in rform.fecha_entrada.errors %}<span class="text-danger">{{ error }}</span>{% endfor %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 form-group">
+                        <label>Fecha Salida</label>
+                        {{ rform.fecha_salida.0 }}
+                    </div>
+                    <div class="col-sm-3 form-group">
+                        <label>Hora Salida</label>
+                        {{ rform.fecha_salida.1 }}
+                    </div>
+                    <div class="col-sm-6 form-group">
+                        <label>Observaciones</label>
+                        {{ rform.observaciones }}
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
 
-      <div class="d-flex justify-content-between">
-        <a href="{% url 'recepcion' %}" class="btn btn-secondary">Volver</a>
-        <button type="submit" class="btn btn-primary">Registrar</button>
-      </div>
+        <div class="box box-success">
+            <div class="box-header with-border"><h3 class="box-title">Registrar Pago</h3></div>
+            <div class="box-body">
+                <div class="row">
+                    <div class="col-sm-3 form-group">
+                        <label>Método Pago</label>
+                        {{ pform.tipo_pago }}
+                    </div>
+                    <div class="col-sm-2 form-group">
+                        <label>Descuento ($)</label>
+                        {{ rform.descuento_monto }}
+                    </div>
+                    <div class="col-sm-2 form-group">
+                        <label>Pago Recibido</label>
+                        {{ pform.monto_recibido }}
+                    </div>
+                    <div class="col-sm-2 form-group">
+                        <label>Total</label>
+                        {{ rform.total_calculado }}
+                    </div>
+                    <div class="col-sm-3 form-group">
+                        <label style="color:#d9534f;">A Deuda</label>
+                        {{ rform.deuda_calculada }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="box box-info">
+            <div class="box-header with-border">
+                <h3 class="box-title">Registrar Huésped Adicional</h3>
+                <div class="box-tools pull-right">
+                    <button type="button" id="btn-add-acomp" class="btn btn-box-tool"><i class="fa fa-plus"></i> Agregar Otro</button>
+                </div>
+            </div>
+            <div class="box-body">
+                {{ aformset.management_form }}
+                <div id="acompanantes-forms">
+                    {% for form in aformset %}
+                    <div class="row acompanante-form" id="acompanante-{{ forloop.counter0 }}" style="margin-bottom: 10px;">
+                        <div class="col-sm-5">{{ form.nombre_completo }}</div>
+                        <div class="col-sm-5">{{ form.dni }}</div>
+                        <div class="col-sm-2">
+                           {% if aformset.can_delete and forloop.counter0 > 0 %}
+                            <button type="button" class="btn btn-danger btn-block btn-remove-acomp">
+                                <i class="fa fa-trash"></i> Quitar
+                            </button>
+                           {% endif %}
+                        </div>
+                        <div style="display:none;">{{ form.id }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div id="acompanante-empty-form" style="display: none;">
+                    <div class="row acompanante-form" id="acompanante-__prefix__" style="margin-bottom: 10px;">
+                         <div class="col-sm-5">{{ aformset.empty_form.nombre_completo }}</div>
+                         <div class="col-sm-5">{{ aformset.empty_form.dni }}</div>
+                         <div class="col-sm-2">
+                            <button type="button" class="btn btn-danger btn-block btn-remove-acomp">
+                                <i class="fa fa-trash"></i> Quitar
+                            </button>
+                         </div>
+                         <div style="display:none;">{{ aformset.empty_form.id }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <input type="hidden" name="piso" value="{{ request.GET.piso }}"/>
+
+        <div class="box">
+            <div class="box-footer">
+                <a href="{% url 'recepcion' %}?piso={{ request.GET.piso|default:'' }}" class="btn btn-default">Cancelar</a>
+                <button type="submit" class="btn btn-primary pull-right"><i class="fa fa-save"></i> Guardar y Ocupar</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<div class="modal fade" id="modal-nuevo-cliente">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="form-nuevo-cliente" method="POST" action="{% url 'crear_cliente_ajax' %}">
+                {% csrf_token %}
+                <div class="modal-header"><h4 class="modal-title">Registrar Nuevo Cliente</h4></div>
+                <div class="modal-body">
+                    <div id="modal-cliente-errors" class="alert alert-danger" style="display:none;"></div>
+                    <div class="form-group"><label>DNI</label>{{ cform_modal.dni }}</div>
+                    <div class="form-group"><label>Nombre Completo</label>{{ cform_modal.nombrecompleto }}</div>
+                    <div class="form-group"><label>Teléfono</label>{{ cform_modal.telefono }}</div>
+                    <div class="form-group"><label>Email</label>{{ cform_modal.email }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
-</form>
+</div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-  // Duplicar el último form del formset en el front (simple y suficiente)
-  function addForm() {
-    const container = document.getElementById('acompanantes-forms');
-    const totalForms = document.getElementById('id_acompanantes-TOTAL_FORMS');
-    const index = parseInt(totalForms.value, 10);
-    const last = container.querySelector('.border:last-of-type');
-    const clone = last ? last.cloneNode(true) : null;
-    if (!clone) return;
-    clone.querySelectorAll('input').forEach(function (input) {
-      input.value = '';
-      input.name = input.name.replace(/-(\d+)-/g, `-${index}-`);
-      input.id   = input.id.replace(/-(\d+)-/g, `-${index}-`);
+document.addEventListener('DOMContentLoaded', function () {
+    // --- ELEMENTOS DEL DOM ---
+    const selectTarifa = document.getElementById('id_tarifa');
+    const inputFechaEntrada = document.getElementById('id_fecha_entrada');
+    const inputFechaSalidaDate = document.querySelector('input[name="fecha_salida_0"]');
+    const inputFechaSalidaTime = document.querySelector('input[name="fecha_salida_1"]');
+    const inputDescuento = document.getElementById('id_descuento_monto');
+    const inputPago = document.getElementById('id_monto_recibido');
+    const inputTotal = document.getElementById('id_total_calculado');
+    const inputDeuda = document.getElementById('id_deuda_calculada');
+
+    // --- FUNCIÓN PRINCIPAL DE CÁLCULO ---
+    function recalcularTodo() {
+        const opcionTarifa = selectTarifa.options[selectTarifa.selectedIndex];
+        if (!opcionTarifa) return;
+
+        const precio = parseFloat(opcionTarifa.dataset.precio || '0');
+        const tipo = opcionTarifa.dataset.tipo || 'HORA';
+        const duracion = parseInt(opcionTarifa.dataset.duracion || '1', 10);
+
+        // 1. Recalcular fecha de salida
+        const fechaEntrada = new Date(inputFechaEntrada.value);
+        let fechaSalida = new Date(fechaEntrada);
+        if (!isNaN(fechaEntrada)) {
+            if (tipo === 'HORA') fechaSalida.setHours(fechaEntrada.getHours() + duracion);
+            else if (tipo === 'DÍA') fechaSalida.setDate(fechaEntrada.getDate() + duracion);
+            else if (tipo === 'SEMANA') fechaSalida.setDate(fechaEntrada.getDate() + (7 * duracion));
+
+            const yyyy = fechaSalida.getFullYear();
+            const mm = String(fechaSalida.getMonth() + 1).padStart(2, '0');
+            const dd = String(fechaSalida.getDate()).padStart(2, '0');
+            const hh = String(fechaSalida.getHours()).padStart(2, '0');
+            const min = String(fechaSalida.getMinutes()).padStart(2, '0');
+
+            if (inputFechaSalidaDate) inputFechaSalidaDate.value = `${yyyy}-${mm}-${dd}`;
+            if (inputFechaSalidaTime) inputFechaSalidaTime.value = `${hh}:${min}`;
+        }
+
+        // 2. Recalcular totales
+        const descuento = parseFloat(inputDescuento.value || '0');
+        const pago = parseFloat(inputPago.value || '0');
+        const total = Math.max(precio - descuento, 0);
+        const deuda = Math.max(total - pago, 0);
+
+        if(inputTotal) inputTotal.value = total.toFixed(2);
+        if(inputDeuda) inputDeuda.value = deuda.toFixed(2);
+    }
+
+    // --- LÓGICA PARA NUEVO CLIENTE (MODAL) ---
+    const formNuevoCliente = document.getElementById('form-nuevo-cliente');
+    document.getElementById('btn-nuevo-cliente').addEventListener('click', () => {
+        formNuevoCliente.reset();
+        document.getElementById('modal-cliente-errors').style.display = 'none';
+        $('#modal-nuevo-cliente').modal('show');
     });
-    const del = clone.querySelector('input[type="checkbox"]');
-    if (del) del.checked = false;
-    container.appendChild(clone);
-    totalForms.value = index + 1;
-  }
+
+    formNuevoCliente.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch(this.action, { method: 'POST', body: new FormData(this) })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const selectCliente = document.getElementById('id_cliente');
+                const newOption = new Option(`${data.cliente.dni} | ${data.cliente.nombrecompleto}`, data.cliente.id, true, true);
+                selectCliente.appendChild(newOption).dispatchEvent(new Event('change'));
+                $('#modal-nuevo-cliente').modal('hide');
+            } else {
+                let errors = '<ul>';
+                for (const field in data.errors) {
+                    errors += `<li>${field}: ${data.errors[field][0]}</li>`;
+                }
+                const errorDiv = document.getElementById('modal-cliente-errors');
+                errorDiv.innerHTML = errors + '</ul>';
+                errorDiv.style.display = 'block';
+            }
+        });
+    });
+
+    // --- LÓGICA PARA AÑADIR/QUITAR HUÉSPEDES ---
+    const btnAddAcomp = document.getElementById('btn-add-acomp');
+    const acompFormsContainer = document.getElementById('acompanantes-forms');
+    const emptyFormTemplate = document.getElementById('acompanante-empty-form').innerHTML;
+    const totalFormsInput = document.querySelector('input[name="acompanantes-TOTAL_FORMS"]');
+
+    btnAddAcomp.addEventListener('click', () => {
+        let currentFormCount = parseInt(totalFormsInput.value, 10);
+        let newFormHtml = emptyFormTemplate.replace(/__prefix__/g, currentFormCount);
+        acompFormsContainer.insertAdjacentHTML('beforeend', newFormHtml);
+        totalFormsInput.value = currentFormCount + 1;
+    });
+
+    acompFormsContainer.addEventListener('click', (e) => {
+        if (e.target && e.target.closest('.btn-remove-acomp')) {
+            e.target.closest('.acompanante-form').remove();
+        }
+    });
+
+    // --- EVENT LISTENERS ---
+    [selectTarifa, inputDescuento, inputPago, inputFechaEntrada].forEach(el => {
+        if(el) {
+          el.addEventListener('change', recalcularTodo);
+          el.addEventListener('keyup', recalcularTodo);
+          el.addEventListener('input', recalcularTodo);
+        }
+    });
+
+    // --- EJECUCIÓN INICIAL ---
+    recalcularTodo();
+});
 </script>
 {% endblock %}

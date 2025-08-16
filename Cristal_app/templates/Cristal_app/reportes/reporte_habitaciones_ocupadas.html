@@ -1,0 +1,27 @@
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Reporte de Habitaciones Ocupadas{% endblock %}
+{% block content %}
+<h2>Reporte de Habitaciones Ocupadas</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Habitación</th>
+      <th>Tipo</th>
+      <th>Cliente</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for habitacion in habitaciones_ocupadas %}
+      <tr>
+        <td>{{ habitacion.id }}</td>
+        <td>{{ habitacion.numero }}</td>
+        <td>{{ habitacion.tipo.nombre }}</td>
+        <td>{{ habitacion.reserva_activa.cliente.nombrecompleto }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">No hay habitaciones ocupadas actualmente.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

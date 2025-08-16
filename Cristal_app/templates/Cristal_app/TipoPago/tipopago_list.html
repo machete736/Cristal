@@ -1,0 +1,54 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Tipos de Pago</h3>
+        <div class="card-tools">
+            <a href="{% url 'tipopago_create' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Añadir Tipo de Pago
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Activo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tipo in tipos_pago %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ tipo.nombre }}</td>
+                    <td>{{ tipo.descripcion|default:"N/A" }}</td>
+                    <td>
+                        {% if tipo.activo %}
+                            <span class="badge badge-success">Sí</span>
+                        {% else %}
+                            <span class="badge badge-danger">No</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'tipopago_update' tipo.pk %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'tipopago_delete' tipo.pk %}" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No hay tipos de pago registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

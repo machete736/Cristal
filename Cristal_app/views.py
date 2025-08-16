@@ -1,28 +1,38 @@
 # Cristal_app/views.py
-from decimal import Decimal
-from datetime import timedelta
-from django.urls import reverse
-from django.contrib import messages
+
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth.models import Group
-from django.db import transaction
-from django.db.models import Sum
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.http import JsonResponse
 from django.contrib.messages.views import SuccessMessageMixin
-from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView, View
-from django.views.decorators.http import require_POST
-from collections import defaultdict
+from decimal import Decimal
+from datetime import timedelta
+from django.db import transaction
+from django.db.models import Sum, F, Prefetch
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
+from django.utils.dateformat import DateFormat
+from django.shortcuts import render
+from django.db.models import Sum
+from dateutil.relativedelta import relativedelta
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from datetime import date, timedelta, datetime
+# ...
+hoy = datetime.now()
+from .models import Reserva, Venta, Habitacion
 # Modelos
 from .models import (
     Piso, Habitacion, Reserva,
     Proveedor, Categoria, Producto,
     Compra, DetalleCompra, Venta, DetalleVenta,
-    Cliente, TipoHabitacion
+    Cliente, TipoHabitacion, Tarifa, TipoPago, Consumo
 )
 
 # Formularios
@@ -30,7 +40,7 @@ from .forms import (
     CustomUserCreationForm, CustomUserChangeForm, GroupForm,
     CompraForm, DetalleCompraFormSet,
     VentaForm, DetalleVentaFormSet,
-    ClienteForm, ReservaForm, PagoForm, AcompananteFormSet
+    ClienteForm, TarifaForm, ReservaOcuparForm, PagoForm, AcompananteFormSet, TipoPagoForm
 )
 
 User = get_user_model()
@@ -80,220 +90,228 @@ def home_view(request):
 # =======================
 # RECEPCIÓN
 # =======================
+@login_required
 def recepcion_view(request):
-    pisos = Piso.objects.filter(activo=True).order_by('numero')
+    """Tablero de Recepción por piso, con reserva activa en cada habitación."""
+    pisos = Piso.objects.order_by('numero')
 
-    # Piso seleccionado en la URL (?piso=ID); si no, el primero activo
+    # Piso seleccionado (o el primero)
     piso_id = request.GET.get('piso')
-    if piso_id:
-        piso_actual = get_object_or_404(Piso, pk=piso_id)
-    else:
-        piso_actual = pisos.first() if pisos.exists() else None
+    piso_actual = get_object_or_404(Piso, pk=piso_id) if piso_id else pisos.first()
 
-    # Habitaciones del piso actual
-    if piso_actual:
-        habitaciones = (Habitacion.objects
-                        .filter(activo=True, piso=piso_actual)
-                        .select_related('tipo', 'piso')
-                        .order_by('numero'))
-    else:
-        habitaciones = Habitacion.objects.none()
-
-    # >>>>>>>>>> AQUÍ VA EL BLOQUE CLAVE <<<<<<<<<<
-    # Enlaza a cada habitación su reserva activa para evitar N+1 queries
-    if habitaciones.exists():
-        activas = (
-            Reserva.objects
-            .filter(estado='ACTIVA', habitacion__in=habitaciones)
-            .select_related('cliente', 'venta')  # objetos relacionados 1-1 / FK
-            .prefetch_related('acompanantes', 'venta__detalleventa_set__producto')  # m2m/one-to-many
+    # Prefetch de la reserva ACTIVA para cada habitación
+    habitaciones = (
+        Habitacion.objects
+        .filter(piso=piso_actual)
+        .select_related('piso', 'tipo')
+        .prefetch_related(
+            Prefetch(
+                'reservas',
+                queryset=Reserva.objects.filter(estado='ACTIVA').order_by('-fecha_entrada'),
+                to_attr='reservas_activas'
+            )
         )
-        mapa = {r.habitacion_id: r for r in activas}
-        for h in habitaciones:
-            h.reserva_activa = mapa.get(h.id)
-    else:
-        # Si no hay habitaciones, evita errores en plantilla
-        for h in habitaciones:
-            h.reserva_activa = None
-    # >>>>>>>>> FIN BLOQUE CLAVE <<<<<<<<<
+        .order_by('numero')
+    )
 
-    # Productos disponibles (para el modal de Consumos)
-    productos = Producto.objects.filter(activo=True, stock__gt=0).order_by('nombre')
+    # Agregar colores a las habitaciones según su estado
+    for h in habitaciones:
+        # Establecer el color según el estado de la habitación
+        if h.estado == 'DISPONIBLE':
+            h.color_estado = 'bg-green'  # Verde
+        elif h.estado == 'OCUPADA':
+            h.color_estado = 'bg-red'    # Rojo
+        else:  # LIMPIEZA
+            h.color_estado = 'bg-yellow'  # Amarillo
+
+    # Productos para el modal de consumos
+    productos = Producto.objects.filter(activo=True).order_by('nombre')
 
     context = {
         'pisos': pisos,
         'piso_actual': piso_actual,
-        'piso_sel': piso_actual.pk if piso_actual else None,
         'habitaciones': habitaciones,
         'productos': productos,
     }
+
     return render(request, 'Cristal_app/Recepcion/recepcion.html', context)
 
-@login_required
 def ocupar_habitacion(request, pk):
     hab = get_object_or_404(Habitacion, pk=pk)
+
     if hab.estado != "DISPONIBLE":
         messages.error(request, "La habitación no está disponible.")
-        return redirect("recepcion")
+        return redirect('recepcion')
 
-    if request.method == "POST":
-        rform = ReservaForm(request.POST)
+    # El prefijo es crucial para que el formset funcione
+    prefix_acompanantes = 'acompanantes'
+
+    if request.method == 'POST':
+        reserva = Reserva(habitacion=hab, estado='ACTIVA')
+        rform = ReservaOcuparForm(request.POST, instance=reserva)
         pform = PagoForm(request.POST)
-        aformset = AcompananteFormSet(request.POST, prefix="acompanantes")
+        aformset = AcompananteFormSet(request.POST, instance=reserva, prefix=prefix_acompanantes)
 
         if rform.is_valid() and pform.is_valid() and aformset.is_valid():
             with transaction.atomic():
-                # 1) Reserva
-                reserva = rform.save(commit=False)
-                reserva.habitacion = hab
-                reserva.estado = "ACTIVA"
-                reserva.fecha_entrada = timezone.now()
+                reserva_guardada = rform.save()
 
-                # calcular noches (al menos 1)
-                delta = rform.cleaned_data["fecha_salida"] - reserva.fecha_entrada
-                noches = delta.days + (1 if delta.seconds > 0 else 0)
-                if noches <= 0:
-                    noches = 1
-
-                # costos
-                precio_noche = Decimal(hab.precio_noche)
-                reserva.costo_habitacion = precio_noche * noches
-                reserva.costo_productos = Decimal("0.00")
-
-                desc = Decimal(str(rform.cleaned_data.get("descuento_porcentaje") or 0))
-                factor_desc = (Decimal("100.00") - desc) / Decimal("100.00")
-                reserva.costo_total = (reserva.costo_habitacion * factor_desc).quantize(Decimal("0.01"))
-
-                reserva.save()
-
-                # 2) Pago
                 pago = pform.save(commit=False)
-                pago.reserva = reserva
-                pago.save()
+                if pago.monto_recibido and pago.monto_recibido > 0:
+                    pago.reserva = reserva_guardada
+                    pago.save()
 
-                # 3) Acompañantes
-                aformset.instance = reserva
+                aformset.instance = reserva_guardada
                 aformset.save()
 
-                # 4) Cambiar estado habitación
-                hab.estado = "OCUPADA"
-                hab.save()
+                hab.estado = 'OCUPADA'
+                hab.save(update_fields=['estado'])
 
-            messages.success(request, f"Habitación {hab.numero} ocupada correctamente.")
-            return redirect("recepcion")
+                messages.success(request, f'Habitación {hab.numero} ocupada correctamente.')
+                piso_redirect = request.POST.get('piso')
+                if piso_redirect:
+                    return redirect(f"{reverse('recepcion')}?piso={piso_redirect}")
+                return redirect('recepcion')
         else:
-            messages.error(request, "Revisa los datos del formulario.")
-    else:
-        # Inicializamos salida a +1 día
-        salida_inicial = (timezone.now() + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
-        rform = ReservaForm(initial={"fecha_salida": salida_inicial})
-        pform = PagoForm()
-        aformset = AcompananteFormSet(prefix="acompanantes")
+            messages.error(request, 'Por favor, corrige los errores en el formulario.')
 
-    return render(request, "Cristal_app/Recepcion/ocupar_form.html", {
-        "habitacion": hab,
-        "rform": rform,
-        "pform": pform,
-        "aformset": aformset,
+    else: # Método GET
+        fe = timezone.now()
+        initial = {
+            # Formateamos la fecha para el input datetime-local
+            'fecha_entrada': DateFormat(fe).format('Y-m-d\\TH:i'),
+        }
+
+        rform = ReservaOcuparForm(initial=initial)
+        pform = PagoForm()
+        aformset = AcompananteFormSet(instance=Reserva(), prefix=prefix_acompanantes)
+
+    tarifas = hab.tipo.tarifas.all()
+    clientes = Cliente.objects.filter(activo=True)
+    cform_modal = ClienteForm()
+
+    return render(request, 'Cristal_app/Recepcion/ocupar_form.html', {
+        'habitacion': hab,
+        'rform': rform,
+        'pform': pform,
+        'aformset': aformset,
+        'clientes': clientes,
+        'cform_modal': cform_modal,
+        'tarifas': tarifas
     })
+@login_required
+def marcar_limpieza(request, pk):
+    hab = get_object_or_404(Habitacion, pk=pk)
+    if request.method == 'POST':
+        hab.estado = 'LIMPIEZA'
+        hab.save(update_fields=['estado'])
+        messages.success(request, f'Habitación {hab.numero} marcada en limpieza.')
+        next_piso = request.GET.get('piso') or request.POST.get('piso')
+        return redirect(f"{reverse('recepcion')}?piso={next_piso}") if next_piso else redirect('recepcion')
+    return render(request, 'Cristal_app/Recepcion/limpieza_confirm.html', {'habitacion': hab})
+
+@login_required
+def marcar_disponible(request, pk):
+    hab = get_object_or_404(Habitacion, pk=pk)
+    if request.method == 'POST':
+        hab.estado = 'DISPONIBLE'
+        hab.save(update_fields=['estado'])
+        messages.success(request, f'Habitación {hab.numero} disponible nuevamente.')
+        next_piso = request.GET.get('piso') or request.POST.get('piso')
+        return redirect(f"{reverse('recepcion')}?piso={next_piso}") if next_piso else redirect('recepcion')
+    return render(request, 'Cristal_app/Recepcion/disponible_confirm.html', {'habitacion': hab})
 
 @login_required
 def checkout_habitacion(request, pk):
     hab = get_object_or_404(Habitacion, pk=pk)
     reserva = Reserva.objects.filter(habitacion=hab, estado='ACTIVA').first()
+
     if not reserva:
         messages.error(request, 'No hay una reserva activa para esta habitación.')
         return redirect('recepcion')
 
     if request.method == 'POST':
-        with transaction.atomic():
-            reserva.estado = 'FINALIZADA'
-            reserva.fecha_salida = timezone.now()
-            reserva.save()
-            hab.estado = 'LIMPIEZA'
-            hab.save()
-        messages.success(request, f'Checkout realizado. Habitación {hab.numero} en limpieza.')
-        return redirect('recepcion')
+        reserva.estado = 'FINALIZADA'
+        reserva.fecha_salida = timezone.now()
+        reserva.save(update_fields=['estado', 'fecha_salida'])
+        hab.estado = 'DISPONIBLE'
+        hab.save(update_fields=['estado'])
+
+        messages.success(request, f'Checkout realizado. Habitación {hab.numero} disponible nuevamente.')
+        return redirect('recepcion')  # Asegúrate de que esta ruta esté bien definida en tu `urls.py`
 
     return render(request, 'Cristal_app/Recepcion/checkout_confirm.html', {'habitacion': hab, 'reserva': reserva})
 
-
 @login_required
-def marcar_limpieza(request, pk):
-    hab = get_object_or_404(Habitacion, pk=pk)
-    if hab.estado not in ('OCUPADA', 'DISPONIBLE'):
-        messages.error(request, 'No se puede marcar limpieza desde el estado actual.')
-        return redirect('recepcion')
-    if request.method == 'POST':
-        hab.estado = 'LIMPIEZA'
-        hab.save()
-        messages.success(request, f'Habitación {hab.numero} marcada para limpieza.')
-        return redirect('recepcion')
-    return render(request, 'Cristal_app/Recepcion/limpieza_confirm.html', {'habitacion': hab})
-
-
-@login_required
-def marcar_disponible(request, pk):
-    hab = get_object_or_404(Habitacion, pk=pk)
-    if hab.estado != 'LIMPIEZA':
-        messages.error(request, 'Solo se puede marcar disponible desde limpieza.')
-        return redirect('recepcion')
-    if request.method == 'POST':
-        hab.estado = 'DISPONIBLE'
-        hab.save()
-        messages.success(request, f'Habitación {hab.numero} disponible.')
-        return redirect('recepcion')
-    return render(request, 'Cristal_app/Recepcion/disponible_confirm.html', {'habitacion': hab})
-@login_required
-@require_POST
 def registrar_consumo(request, habitacion_id):
+    # Obtener la habitación y la reserva activa
     hab = get_object_or_404(Habitacion, pk=habitacion_id)
-    reserva = get_object_or_404(Reserva, habitacion=hab, estado='ACTIVA')
+    reserva = Reserva.objects.filter(habitacion=hab, estado='ACTIVA').first()  # Usamos first() para evitar múltiples resultados
 
-    prod_ids = request.POST.getlist('producto_id[]')
-    cantidades = request.POST.getlist('cantidad[]')
+    if not reserva:
+        messages.error(request, 'No hay una reserva activa para esta habitación.')
+        return redirect('recepcion')
 
-    next_url = request.POST.get('next') or reverse('recepcion')
+    if request.method == 'POST':
+        prod_ids = request.POST.getlist('producto_id[]')
+        cantidades = request.POST.getlist('cantidad[]')
+        next_url = request.POST.get('next') or reverse('recepcion')
 
-    with transaction.atomic():
-        # Crear o usar la venta asociada a la reserva
-        venta = reserva.venta or Venta.objects.create(cliente=reserva.cliente, usuario=request.user)
-        if reserva.venta_id is None:
-            reserva.venta = venta
-            reserva.save(update_fields=['venta'])
+        # Si no hay productos seleccionados, devuelve un error
+        if not prod_ids:
+            messages.error(request, 'Por favor, seleccione al menos un producto.')
+            return redirect(next_url)
 
-        total_lineas = 0
-        for pid, cant in zip(prod_ids, cantidades):
-            if not pid:
-                continue
-            p = get_object_or_404(Producto, pk=pid)
-            c = max(int(cant or 1), 1)
+        with transaction.atomic():
+            # Usar/crear venta asociada
+            venta = reserva.venta or Venta.objects.create(cliente=reserva.cliente, usuario=request.user)
+            if reserva.venta_id is None:
+                reserva.venta = venta
+                reserva.save(update_fields=['venta'])
 
-            # Crear detalle de venta
-            DetalleVenta.objects.create(
-                venta=venta,
-                producto=p,
-                cantidad=c,
-                precio_unitario=p.precio_venta
-            )
+            total_lineas = Decimal('0.00')
+            for pid, cant in zip(prod_ids, cantidades):
+                if not pid:
+                    continue
+                p = get_object_or_404(Producto, pk=pid)
+                c = max(int(cant or 1), 1)
 
-            # Descontar stock
-            p.stock = F('stock') - c
-            p.save(update_fields=['stock'])
+                # Crear el detalle de la venta
+                DetalleVenta.objects.create(
+                    venta=venta,
+                    producto=p,
+                    cantidad=c,
+                    precio_unitario=p.precio_venta
+                )
 
-            total_lineas += float(p.precio_venta) * c
+                # Actualizar stock y calcular el total
+                p.stock = F('stock') - c
+                p.save(update_fields=['stock'])
+                total_lineas += (p.precio_venta or 0) * c
 
-        # Actualizar total de la venta y de la reserva (costo_productos / costo_total)
-        venta.total_venta = (venta.total_venta or 0) + total_lineas
-        venta.save(update_fields=['total_venta'])
+            # Actualizar el total de la venta y de la reserva
+            venta.total_venta = (venta.total_venta or 0) + total_lineas
+            venta.save(update_fields=['total_venta'])
 
-        reserva.costo_productos = (reserva.costo_productos or 0) + total_lineas
-        # Si manejas costo_total, actualízalo aquí
-        if reserva.costo_total is not None:
-            reserva.costo_total = float(reserva.costo_total) + total_lineas
-        reserva.save(update_fields=['costo_productos', 'costo_total'])
+            reserva.costo_productos = (reserva.costo_productos or 0) + total_lineas
+            if reserva.costo_total is not None:
+                reserva.costo_total = (reserva.costo_total or 0) + total_lineas
+            reserva.save(update_fields=['costo_productos', 'costo_total'])
 
-    return redirect(next_url)
+        messages.success(request, 'Consumo registrado correctamente.')
+        return redirect(next_url)
+    return render(request, 'Cristal_app/Recepcion/consumo_form.html', {'habitacion': hab, 'reserva': reserva})
+
+@login_required
+def ver_detalles_reserva(request, reserva_id):
+    reserva = get_object_or_404(Reserva, pk=reserva_id)
+    consumos = reserva.venta.detalleventa_set.all() if reserva.venta else []
+    context = {
+        'reserva': reserva,
+        'consumos': consumos,
+    }
+    return render(request, 'Cristal_app/Recepcion/detalles_reserva.html', context)
+
 @property
 def reserva_activa(self):
     return self.reservas.filter(estado='ACTIVA').order_by('-fecha_entrada').first()
@@ -767,20 +785,60 @@ class ClienteDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView)
 # =======================
 # MANTENIMIENTO
 # =======================
+
+def gestionar_tarifas(request, pk):
+    tipo_habitacion = get_object_or_404(TipoHabitacion, pk=pk)
+    tarifas = tipo_habitacion.tarifas.all()  # Obtiene todas las tarifas del tipo de habitación
+    context = {'tipo_habitacion': tipo_habitacion, 'tarifas': tarifas}
+    return render(request, 'Cristal_app/Tarifa/gestionar_tarifas.html', context)
+
+def editar_tarifa(request, pk=None, tipo_id=None):
+    # Si pk es None, significa que estamos creando una nueva tarifa
+    if pk is None:
+        tipo_habitacion = get_object_or_404(TipoHabitacion, pk=tipo_id)
+        tarifa = Tarifa(tipo_habitacion=tipo_habitacion)  # Nueva tarifa asociada al tipo
+    else:
+        tarifa = get_object_or_404(Tarifa, pk=pk)
+
+    if request.method == 'POST':
+        form = TarifaForm(request.POST, instance=tarifa)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Tarifa guardada con éxito.')
+            return redirect('gestionar_tarifas', pk=tarifa.tipo_habitacion.pk)
+    else:
+        form = TarifaForm(instance=tarifa)
+
+    return render(request, 'Cristal_app/Tarifa/editar_tarifa.html', {'form': form})
+
+def eliminar_tarifa(request, pk):
+    tarifa = get_object_or_404(Tarifa, pk=pk)
+    tipo_habitacion = tarifa.tipo_habitacion
+    tarifa.delete()
+    messages.success(request, 'Tarifa eliminada con éxito.')
+    return redirect('gestionar_tarifas', pk=tipo_habitacion.pk)
+def obtener_tarifas(request, tipo_id):
+    tipo_habitacion = get_object_or_404(TipoHabitacion, pk=tipo_id)
+    tarifas = tipo_habitacion.tarifas.all().values('nombre', 'precio', 'tipo')
+    return JsonResponse({'tarifas': list(tarifas)})
+
+class TipoHabitacionCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = TipoHabitacion
+    fields = ['nombre', 'descripcion', 'activo']
+    template_name = 'Cristal_app/Mantenimiento/TipoHabitacion/tipohabitacion_form.html'
+    success_url = reverse_lazy('tipohabitacion_list')  # Redirige a la lista después de crear
+    success_message = "Tipo de habitación '%(nombre)s' creado exitosamente."
+    permission_required = 'Cristal_app.add_tipohabitacion'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 class TipoHabitacionListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = TipoHabitacion
     template_name = 'Cristal_app/Mantenimiento/TipoHabitacion/tipohabitacion_list.html'
     context_object_name = 'tipohabitaciones'
     permission_required = 'Cristal_app.view_tipohabitacion'
 
-
-class TipoHabitacionCreateView(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, CreateView):
-    model = TipoHabitacion
-    fields = ['nombre', 'descripcion', 'activo']
-    template_name = 'Cristal_app/Mantenimiento/TipoHabitacion/tipohabitacion_form.html'
-    success_url = reverse_lazy('tipohabitacion_list')
-    success_message = "Tipo de Habitación '%(nombre)s' creado exitosamente."
-    permission_required = 'Cristal_app.add_tipohabitacion'
 
 
 class TipoHabitacionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, UpdateView):
@@ -847,20 +905,45 @@ class PisoDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
         return redirect(self.success_url)
 
 
+class HabitacionCreateView(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Habitacion
+    fields = ['numero', 'piso', 'tipo', 'descripcion', 'activo']
+    template_name = 'Cristal_app/Mantenimiento/Habitacion/habitacion_form.html'
+    success_url = reverse_lazy('habitacion_list')
+    success_message = "Habitación '%(numero)s' creada exitosamente."
+    permission_required = 'Cristal_app.add_habitacion'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Obtener el tipo de habitación del formulario
+        tipo_id = self.request.GET.get('tipo')
+
+        if tipo_id:
+            tipo_habitacion = get_object_or_404(TipoHabitacion, pk=tipo_id)
+            context['tarifas'] = tipo_habitacion.tarifas.all()  # Pasa las tarifas a la plantilla
+        else:
+            context['tarifas'] = []  # Si no hay tipo, no pasa ninguna tarifa
+
+        return context
+
+
 class HabitacionListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = Habitacion
     template_name = 'Cristal_app/Mantenimiento/Habitacion/habitacion_list.html'
     context_object_name = 'habitaciones'
     permission_required = 'Cristal_app.view_habitacion'
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Prevenir múltiples consultas a la base de datos utilizando select_related para obtener el tipo de habitación
+        return queryset.select_related('tipo')  # Esto traerá la relación TipoHabitacion asociada a cada habitación
 
-class HabitacionCreateView(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, CreateView):
-    model = Habitacion
-    fields = ['numero', 'piso', 'tipo', 'descripcion', 'precio_noche', 'activo']
-    template_name = 'Cristal_app/Mantenimiento/Habitacion/habitacion_form.html'
-    success_url = reverse_lazy('habitacion_list')
-    success_message = "Habitación '%(numero)s' creada exitosamente."
-    permission_required = 'Cristal_app.add_habitacion'
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Agregar las tarifas al contexto
+        for habitacion in context['habitaciones']:
+            habitacion.tarifas = habitacion.tipo.tarifas.all()  # Aquí obtenemos las tarifas asociadas al tipo de habitación
+        return context
 
 
 class HabitacionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, SuccessMessageMixin, UpdateView):
@@ -869,7 +952,14 @@ class HabitacionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, SuccessM
     template_name = 'Cristal_app/Mantenimiento/Habitacion/habitacion_form.html'
     success_url = reverse_lazy('habitacion_list')
     success_message = "Habitación '%(numero)s' actualizada exitosamente."
+
+    # Aquí defines los permisos necesarios para acceder a esta vista
     permission_required = 'Cristal_app.change_habitacion'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tipos_habitacion'] = TipoHabitacion.objects.all()  # Pasa los tipos de habitación al formulario
+        return context
 
 
 class HabitacionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
@@ -885,3 +975,382 @@ class HabitacionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
         obj.delete()
         messages.success(request, f"Habitación '{num}' eliminada exitosamente.")
         return redirect(self.success_url)
+
+
+# Listar Tipos de Pago
+def tipo_pago_list(request):
+    tipos_pago = TipoPago.objects.all()
+    return render(request, 'Cristal_app/TipoPago/tipopago_list.html', {'tipos_pago': tipos_pago})
+
+
+# Crear o Editar Tipo de Pago
+def tipo_pago_create_or_update(request, pk=None):
+    if pk:
+        tipo_pago = get_object_or_404(TipoPago, pk=pk)
+    else:
+        tipo_pago = None
+
+    if request.method == 'POST':
+        form = TipoPagoForm(request.POST, instance=tipo_pago)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Tipo de pago guardado correctamente.')
+            return redirect('tipopago_list')
+        else:
+            messages.error(request, 'Error al guardar el tipo de pago.')
+    else:
+        form = TipoPagoForm(instance=tipo_pago)
+
+    return render(request, 'Cristal_app/TipoPago/tipopago_form.html', {'form': form})
+
+
+# Eliminar Tipo de Pago
+def tipo_pago_delete(request, pk):
+    tipo_pago = get_object_or_404(TipoPago, pk=pk)
+    tipo_pago.delete()
+    messages.success(request, 'Tipo de pago eliminado correctamente.')
+    return redirect('tipopago_list')
+
+
+def tipo_pago_create_or_update(request, pk=None):
+    if pk:
+        tipo_pago = get_object_or_404(TipoPago, pk=pk)
+    else:
+        tipo_pago = None
+
+    if request.method == 'POST':
+        form = TipoPagoForm(request.POST, instance=tipo_pago)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Tipo de pago guardado correctamente.')
+            return redirect('tipopago_list')
+        else:
+            messages.error(request, 'Error al guardar el tipo de pago.')
+    else:
+        form = TipoPagoForm(instance=tipo_pago)
+
+    return render(request, 'Cristal_app/TipoPago/tipopago_form.html', {'form': form})
+# Cristal_app/views.py
+
+from django.http import JsonResponse # Asegúrate de que esté importado
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+
+# ... (el resto de tus vistas)
+
+@login_required
+@require_POST # Esta vista solo aceptará peticiones POST
+def crear_cliente_ajax(request):
+    """Crea un cliente vía AJAX y devuelve sus datos en JSON."""
+    form = ClienteForm(request.POST)
+    if form.is_valid():
+        cliente = form.save()
+        return JsonResponse({
+            'success': True,
+            'cliente': {
+                'id': cliente.id,
+                'nombrecompleto': cliente.nombrecompleto
+            }
+        })
+    # Si el formulario no es válido, devuelve los errores
+    return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+
+# Reporte de Reservas por Fecha
+def reporte_reservas(request):
+    periodo = request.GET.get('periodo', 'hoy')  # 'hoy', 'semana', 'mes', 'personalizado'
+    fecha_inicio = None
+    fecha_fin = None
+
+    hoy = date.today()
+
+    if periodo == 'semana':
+        fecha_inicio = hoy - timedelta(days=hoy.weekday())
+        fecha_fin = fecha_inicio + timedelta(days=6)
+    elif periodo == 'mes':
+        fecha_inicio = hoy.replace(day=1)
+        fecha_fin = hoy.replace(day=1) + timedelta(days=32)
+        fecha_fin = fecha_fin.replace(day=1) - timedelta(days=1)
+    else:  # 'hoy' o por defecto
+        fecha_inicio = hoy
+        fecha_fin = hoy
+
+    reservas = Reserva.objects.filter(fecha_entrada__date__range=[fecha_inicio, fecha_fin])
+
+    context = {
+        'reservas': reservas,
+        'periodo_seleccionado': periodo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+    }
+
+    # Renderizar HTML para la página
+    return render(request, 'Cristal_app/reportes/reporte_reservas.html', context)
+
+
+def generar_pdf(request):
+    # Lógica de filtrado de datos (duplicada de reporte_reservas)
+    periodo = request.GET.get('periodo', 'hoy')
+    fecha_inicio = None
+    fecha_fin = None
+
+    hoy = date.today()
+
+    if periodo == 'semana':
+        # Resta los días de la semana para llegar al lunes (0=lunes, 1=martes...)
+        fecha_inicio = hoy - timedelta(days=hoy.weekday())
+        fecha_fin = fecha_inicio + timedelta(days=6)
+    elif periodo == 'mes':
+        fecha_inicio = hoy.replace(day=1)
+        # Suma 32 días y luego vuelve al primer día del siguiente mes, restándole un día
+        fecha_fin = (hoy.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    else:  # 'hoy' o por defecto
+        fecha_inicio = hoy
+        fecha_fin = hoy
+
+    reservas = Reserva.objects.filter(fecha_entrada__date__range=[fecha_inicio, fecha_fin])
+
+    template_path = 'Cristal_app/reportes/reporte_reservas_pdf.html'
+    context = {'reservas': reservas, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin}
+    template = get_template(template_path)
+    html = template.render(context)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_reservas.pdf"'
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF <pre>' + html + '</pre>')
+
+    return response
+
+
+# Reporte de Consumos Totales
+# Reporte de Consumos Totales
+def reporte_consumos(request):
+    consumos_totales = Venta.objects.aggregate(total_consumo=Sum('total_venta'))
+
+    context = {
+        'total_consumo': consumos_totales['total_consumo'],
+    }
+    return render(request, 'Cristal_app/reportes/reporte_consumos.html', context)
+
+# Reporte de Habitaciones Ocupadas
+# Reporte de Habitaciones Ocupadas
+def reporte_habitaciones_ocupadas(request):
+    habitaciones_ocupadas = Habitacion.objects.filter(estado='OCUPADA')
+
+    context = {
+        'habitaciones_ocupadas': habitaciones_ocupadas,
+    }
+    return render(request, 'Cristal_app/reportes/reporte_habitaciones_ocupadas.html', context)
+def reporte_ingresos(request):
+    # Calcula el total de ingresos de las ventas
+    ventas_ingresos = Venta.objects.aggregate(total_ingresos=Sum('total_venta'))['total_ingresos'] or 0
+
+    # Calcula el total de ingresos de las reservas
+    # Asume que tienes un campo 'precio_total' o similar en tu modelo Reserva
+    # y que solo consideras las reservas con estado 'CONFIRMADA'
+    reservas_ingresos = Reserva.objects.filter(estado='CONFIRMADA').aggregate(total_ingresos=Sum('precio_total'))['total_ingresos'] or 0
+
+    total_ingresos = ventas_ingresos + reservas_ingresos
+
+    context = {
+        'total_ingresos': total_ingresos,
+    }
+    return render(request, 'Cristal_app/reportes/reporte_ingresos.html', context)
+
+
+@login_required
+def reporte_ingresos(request):
+    periodo = request.GET.get('periodo', 'hoy')
+    fecha_inicio = None
+    fecha_fin = None
+
+    hoy = date.today()
+
+    if periodo == 'semana':
+        fecha_inicio = hoy - timedelta(days=hoy.weekday())
+        fecha_fin = fecha_inicio + timedelta(days=6)
+    elif periodo == 'mes':
+        fecha_inicio = hoy.replace(day=1)
+        fecha_fin = (hoy.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    else:
+        fecha_inicio = hoy
+        fecha_fin = hoy
+
+    # Calcular ingresos de ventas
+    ventas_ingresos = Venta.objects.filter(fecha_venta__date__range=[fecha_inicio, fecha_fin]).aggregate(
+        total_ingresos=Sum('total_venta'))['total_ingresos'] or 0
+
+    # Calcular ingresos de reservas - ¡CORRECCIÓN AQUÍ!
+    # Se reemplaza 'precio_total' por 'costo_total'
+    reservas_ingresos = \
+    Reserva.objects.filter(fecha_entrada__date__range=[fecha_inicio, fecha_fin], estado='CONFIRMADA').aggregate(
+        total_ingresos=Sum('costo_total'))['total_ingresos'] or 0
+
+    total_ingresos = ventas_ingresos + reservas_ingresos
+
+    context = {
+        'ventas_ingresos': ventas_ingresos,
+        'reservas_ingresos': reservas_ingresos,
+        'total_ingresos': total_ingresos,
+        'usuario': request.user,
+        'fecha_generacion': hoy,
+        'periodo_seleccionado': periodo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+    }
+
+    return render(request, 'Cristal_app/reportes/reporte_ingresos.html', context)
+
+
+def generar_pdf_ingresos(request):
+    periodo = request.GET.get('periodo', 'hoy')
+    fecha_inicio = None
+    fecha_fin = None
+    hoy = date.today()
+
+    if periodo == 'semana':
+        fecha_inicio = hoy - timedelta(days=hoy.weekday())
+        fecha_fin = fecha_inicio + timedelta(days=6)
+    elif periodo == 'mes':
+        fecha_inicio = hoy.replace(day=1)
+        fecha_fin = (hoy.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    else:
+        fecha_inicio = hoy
+        fecha_fin = hoy
+
+    ventas_ingresos = Venta.objects.filter(fecha_venta__date__range=[fecha_inicio, fecha_fin]).aggregate(
+        total_ingresos=Sum('total_venta'))['total_ingresos'] or 0
+    reservas_ingresos = \
+    Reserva.objects.filter(fecha_entrada__date__range=[fecha_inicio, fecha_fin], estado='CONFIRMADA').aggregate(
+        total_ingresos=Sum('precio_total'))['total_ingresos'] or 0
+
+    total_ingresos = ventas_ingresos + reservas_ingresos
+
+    template_path = 'Cristal_app/reportes/reporte_ingresos_pdf.html'
+    context = {
+        'ventas_ingresos': ventas_ingresos,
+        'reservas_ingresos': reservas_ingresos,
+        'total_ingresos': total_ingresos,
+        'usuario': request.user,
+        'fecha_generacion': hoy,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+    }
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_ingresos.pdf"'
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF <pre>' + html + '</pre>')
+    return response
+
+
+@login_required
+def reporte_resumen(request):
+    periodo = request.GET.get('periodo', 'semana')  # Por defecto, 'semana'
+    fecha_inicio = None
+    fecha_fin = None
+
+    hoy = date.today()
+
+    if periodo == 'dia':
+        fecha_inicio = hoy
+        fecha_fin = hoy
+    elif periodo == 'mes':
+        fecha_inicio = hoy.replace(day=1)
+        fecha_fin = hoy.replace(day=1) + relativedelta(months=1) - timedelta(days=1)
+    elif periodo == 'anual':
+        fecha_inicio = hoy.replace(month=1, day=1)
+        fecha_fin = hoy.replace(month=12, day=31)
+    else:  # 'semana' o cualquier otro valor
+        fecha_inicio = hoy - timedelta(days=hoy.weekday())
+        fecha_fin = fecha_inicio + timedelta(days=6)
+
+    # Cálculo de ingresos y consumos para el periodo seleccionado
+    ventas = Venta.objects.filter(fecha_venta__date__range=[fecha_inicio, fecha_fin]).aggregate(
+        total_ingresos=Sum('total_venta'))['total_ingresos'] or 0
+    reservas = \
+    Reserva.objects.filter(fecha_entrada__date__range=[fecha_inicio, fecha_fin], estado='CONFIRMADA').aggregate(
+        total_ingresos=Sum('costo_total'))['total_ingresos'] or 0
+    total_ingresos = ventas + reservas
+
+    consumos = \
+    Consumo.objects.filter(fecha__date__range=[fecha_inicio, fecha_fin]).aggregate(total_consumos=Sum('monto_consumo'))[
+        'total_consumos'] or 0
+
+    context = {
+        'ventas': ventas,
+        'reservas': reservas,
+        'total_ingresos': total_ingresos,
+        'consumos': consumos,
+        'usuario': request.user,
+        'fecha_generacion': hoy,
+        'periodo_seleccionado': periodo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+    }
+
+    return render(request, 'Cristal_app/reportes/reporte_resumen.html', context)
+
+
+# Vista para generar el PDF
+def generar_pdf_resumen(request):
+    periodo = request.GET.get('periodo', 'semana')
+    fecha_inicio = None
+    fecha_fin = None
+    hoy = date.today()
+
+    # Mismo código de filtrado que en reporte_resumen
+    if periodo == 'dia':
+        fecha_inicio = hoy
+        fecha_fin = hoy
+    elif periodo == 'mes':
+        fecha_inicio = hoy.replace(day=1)
+        fecha_fin = hoy.replace(day=1) + relativedelta(months=1) - timedelta(days=1)
+    elif periodo == 'anual':
+        fecha_inicio = hoy.replace(month=1, day=1)
+        fecha_fin = hoy.replace(month=12, day=31)
+    else:  # 'semana' o cualquier otro valor
+        fecha_inicio = hoy - timedelta(days=hoy.weekday())
+        fecha_fin = fecha_inicio + timedelta(days=6)
+
+    ventas = Venta.objects.filter(fecha_venta__date__range=[fecha_inicio, fecha_fin]).aggregate(
+        total_ingresos=Sum('total_venta'))['total_ingresos'] or 0
+    reservas = \
+    Reserva.objects.filter(fecha_entrada__date__range=[fecha_inicio, fecha_fin], estado='CONFIRMADA').aggregate(
+        total_ingresos=Sum('costo_total'))['total_ingresos'] or 0
+    total_ingresos = ventas + reservas
+    consumos = \
+    Consumo.objects.filter(fecha__date__range=[fecha_inicio, fecha_fin]).aggregate(total_consumos=Sum('monto_consumo'))[
+        'total_consumos'] or 0
+
+    template_path = 'Cristal_app/reportes/reporte_resumen_pdf.html'
+    context = {
+        'ventas': ventas,
+        'reservas': reservas,
+        'total_ingresos': total_ingresos,
+        'consumos': consumos,
+        'usuario': request.user,
+        'fecha_generacion': hoy,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'periodo_seleccionado': periodo,
+    }
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_resumen.pdf"'
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF <pre>' + html + '</pre>')
+    return response

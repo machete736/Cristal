@@ -1,0 +1,54 @@
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Reporte de Ingresos Totales{% endblock %}
+{% block content %}
+<h2>Reporte de Ingresos Totales</h2>
+
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Seleccionar Periodo</h3>
+    </div>
+    <div class="card-body">
+        <form action="{% url 'reporte_ingresos' %}" method="GET" class="form-inline">
+            <div class="form-group mr-2">
+                <label for="periodo">Filtrar por:</label>
+                <select name="periodo" id="periodo" class="form-control ml-2">
+                    <option value="hoy" {% if periodo_seleccionado == 'hoy' %}selected{% endif %}>Hoy</option>
+                    <option value="semana" {% if periodo_seleccionado == 'semana' %}selected{% endif %}>Semana</option>
+                    <option value="mes" {% if periodo_seleccionado == 'mes' %}selected{% endif %}>Mes</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a href="{% url 'generar_pdf_ingresos' %}?periodo={{ periodo_seleccionado }}" class="btn btn-danger ml-2" target="_blank">
+                <i class="fas fa-file-pdf"></i> Imprimir PDF
+            </a>
+        </form>
+    </div>
+</div>
+
+<p class="mt-3">
+    Mostrando ingresos del <strong>{{ fecha_inicio|date:"d/m/Y" }}</strong> al <strong>{{ fecha_fin|date:"d/m/Y" }}</strong>
+</p>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Detalles del Reporte</h3>
+  </div>
+  <div class="card-body">
+    <p><strong>Ingresos por Ventas:</strong> {{ ventas_ingresos|floatformat:2 }} Bs</p>
+    <p><strong>Ingresos por Reservas:</strong> {{ reservas_ingresos|floatformat:2 }} Bs</p>
+    <hr>
+    <h3><strong>Total de Ingresos: {{ total_ingresos|floatformat:2 }} Bs</strong></h3>
+  </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">Información del Reporte</h3>
+    </div>
+    <div class="card-body">
+        <p><strong>Reporte generado por:</strong> {{ usuario.get_full_name|default:usuario.username }}</p>
+        <p><strong>Fecha de generación:</strong> {{ fecha_generacion|date:"d/m/Y" }}</p>
+    </div>
+</div>
+
+{% endblock %}

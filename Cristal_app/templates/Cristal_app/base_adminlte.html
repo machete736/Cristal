@@ -1,5 +1,7 @@
-{% load static %}
 <!DOCTYPE html>
+{% load static %}
+
+
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -28,10 +30,16 @@
     <!-- right nav -->
     <ul class="navbar-nav ml-auto">
       {% if user.is_authenticated %}
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'logout' %}">
-          <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#">
+          <i class="fas fa-user"></i> {{ user.username }}
         </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+          <a href="#" class="dropdown-item">Mis Datos</a>
+          <a href="{% url 'password_change' %}" class="dropdown-item">Cambiar Contraseña</a>
+          <div class="dropdown-divider"></div>
+          <a href="{% url 'logout' %}" class="dropdown-item">Cerrar Sesión</a>
+        </div>
       </li>
       {% endif %}
       <li class="nav-item">
@@ -74,7 +82,7 @@
 
           <!-- Panel de Control -->
           <li class="nav-item">
-            <a href="{% url 'home' %}" class="nav-link">
+            <a href="{% url 'home' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
               <i class="nav-icon fas fa-tachometer-alt"></i>
               <p>Panel de Control</p>
             </a>
@@ -82,15 +90,15 @@
 
           <!-- Recepción -->
           <li class="nav-item">
-            <a href="{% url 'recepcion' %}" class="nav-link">
+            <a href="{% url 'recepcion' %}" class="nav-link {% if request.path == '/recepcion/' %}active{% endif %}">
               <i class="nav-icon fas fa-concierge-bell"></i>
               <p>Recepción</p>
             </a>
           </li>
 
           <!-- Mantenimiento -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
+          <li class="nav-item has-treeview {% if 'mantenimiento' in request.path %}menu-open{% endif %}">
+            <a href="#" class="nav-link {% if 'mantenimiento' in request.path %}active{% endif %}">
               <i class="nav-icon fas fa-cogs"></i>
               <p>
                 Mantenimiento
@@ -100,21 +108,21 @@
             <ul class="nav nav-treeview">
               <!-- Pisos -->
               <li class="nav-item">
-                <a href="{% url 'piso_list' %}" class="nav-link">
+                <a href="{% url 'piso_list' %}" class="nav-link {% if request.path == '/mantenimiento/pisos/' %}active{% endif %}">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Pisos</p>
                 </a>
               </li>
               <!-- Tipos de Habitación -->
               <li class="nav-item">
-                <a href="{% url 'tipohabitacion_list' %}" class="nav-link">
+                <a href="{% url 'tipohabitacion_list' %}" class="nav-link {% if request.path == '/mantenimiento/tipohabitacion/' %}active{% endif %}">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Tipo Habitación</p>
                 </a>
               </li>
               <!-- Habitaciones -->
               <li class="nav-item">
-                <a href="{% url 'habitacion_list' %}" class="nav-link">
+                <a href="{% url 'habitacion_list' %}" class="nav-link {% if request.path == '/mantenimiento/habitaciones/' %}active{% endif %}">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Habitaciones</p>
                 </a>
@@ -124,15 +132,15 @@
 
           <!-- Clientes -->
           <li class="nav-item">
-            <a href="{% url 'cliente_list' %}" class="nav-link">
+            <a href="{% url 'cliente_list' %}" class="nav-link {% if request.path == '/clientes/' %}active{% endif %}">
               <i class="nav-icon fas fa-users"></i>
               <p>Clientes</p>
             </a>
           </li>
 
           <!-- Almacén -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
+          <li class="nav-item has-treeview {% if 'almacen' in request.path %}menu-open{% endif %}">
+            <a href="#" class="nav-link {% if 'almacen' in request.path %}active{% endif %}">
               <i class="nav-icon fas fa-warehouse"></i>
               <p>
                 Almacén
@@ -141,31 +149,31 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="{% url 'proveedor_list' %}" class="nav-link">
+                <a href="{% url 'proveedor_list' %}" class="nav-link {% if request.path == '/almacen/proveedores/' %}active{% endif %}">
                   <i class="fas fa-truck nav-icon"></i>
                   <p>Proveedores</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{% url 'categoria_list' %}" class="nav-link">
+                <a href="{% url 'categoria_list' %}" class="nav-link {% if request.path == '/almacen/categorias/' %}active{% endif %}">
                   <i class="fas fa-tags nav-icon"></i>
                   <p>Categorías</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{% url 'producto_list' %}" class="nav-link">
+                <a href="{% url 'producto_list' %}" class="nav-link {% if request.path == '/almacen/productos/' %}active{% endif %}">
                   <i class="fas fa-boxes nav-icon"></i>
                   <p>Productos</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{% url 'compra_list' %}" class="nav-link">
+                <a href="{% url 'compra_list' %}" class="nav-link {% if request.path == '/almacen/compras/' %}active{% endif %}">
                   <i class="fas fa-shopping-cart nav-icon"></i>
                   <p>Compras</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{% url 'venta_list' %}" class="nav-link">
+                <a href="{% url 'venta_list' %}" class="nav-link {% if request.path == '/almacen/ventas/' %}active{% endif %}">
                   <i class="fas fa-cash-register nav-icon"></i>
                   <p>Ventas</p>
                 </a>
@@ -173,60 +181,10 @@
             </ul>
           </li>
 
-          <!-- Acceso -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-user-shield"></i>
-              <p>
-                Acceso
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="{% url 'group_list' %}" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Roles</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="{% url 'user_list' %}" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Usuarios</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-
-          <!-- Caja (placeholder) -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-cash-register"></i>
-              <p>
-                Caja
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="fas fa-money-check-alt nav-icon"></i>
-                  <p>Apertura de Caja</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="fas fa-money-bill-wave nav-icon"></i>
-                  <p>Cierre de Caja</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-
-          <!-- Reportes (placeholder) -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-chart-pie"></i>
+          <!-- Reportes -->
+          <li class="nav-item has-treeview {% if 'reportes' in request.path %}menu-open{% endif %}">
+            <a href="#" class="nav-link {% if 'reportes' in request.path %}active{% endif %}">
+              <i class="nav-icon fas fa-chart-line"></i>
               <p>
                 Reportes
                 <i class="fas fa-angle-left right"></i>
@@ -234,63 +192,49 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="#" class="nav-link">
+                <a href="{% url 'reporte_reservas' %}" class="nav-link {% if request.path == '/reportes/reservas/' %}active{% endif %}">
                   <i class="far fa-circle nav-icon"></i>
-                  <p>Reporte 1</p>
+                  <p>Reporte de Reservas</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link">
+                <a href="{% url 'reporte_consumos' %}" class="nav-link {% if request.path == '/reportes/consumos/' %}active{% endif %}">
                   <i class="far fa-circle nav-icon"></i>
-                  <p>Reporte 2</p>
+                  <p>Reporte de Consumos</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'reporte_habitaciones_ocupadas' %}" class="nav-link {% if request.path == '/reportes/habitaciones-ocupadas/' %}active{% endif %}">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Reporte de Habitaciones Ocupadas</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'reporte_ingresos' %}" class="nav-link {% if request.path == '/reportes/ingreso/' %}active{% endif %}">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Reporte de Ingreso</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'reporte_resumen' %}" class="nav-link {% if request.path == '/reportes/ingreso/' %}active{% endif %}">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Reporte de Resumen</p>
                 </a>
               </li>
             </ul>
           </li>
 
-          <!-- Reservas (placeholder) -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-calendar-alt"></i>
-              <p>
-                Reservas
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Gestión de Reservas</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-
-          <!-- Salida (placeholder) -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
+          <!-- Salir -->
+          <li class="nav-item">
+            <a href="{% url 'logout' %}" class="nav-link">
               <i class="nav-icon fas fa-sign-out-alt"></i>
-              <p>
-                Salida
-                <i class="fas fa-angle-left right"></i>
-              </p>
+              <p>Cerrar Sesión</p>
             </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Gestión de Salidas</p>
-                </a>
-              </li>
-            </ul>
           </li>
 
         </ul>
       </nav>
-      <!-- /.sidebar-menu -->
     </div>
-    <!-- /.sidebar -->
   </aside>
 
   <!-- Content Wrapper -->
@@ -301,9 +245,6 @@
         <div class="row mb-2">
           <div class="col-sm-6">
             <h1 class="m-0">{% block page_title %}Dashboard{% endblock %}</h1>
-          </div>
-          <div class="col-sm-6">
-
           </div>
         </div>
       </div>

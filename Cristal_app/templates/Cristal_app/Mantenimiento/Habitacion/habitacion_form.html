@@ -1,22 +1,73 @@
-{% extends 'Cristal_app/base_adminlte.html' %}
+{% extends "Cristal_app/base_adminlte.html" %}
 
-{% block title %}{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Habitación{% endblock %}
+{% block title %}Agregar Nueva Habitación{% endblock %}
+
 {% block content %}
-<div class="card card-primary">
-  <div class="card-header">
-    <h3 class="card-title">{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Habitación</h3>
-  </div>
-  <form method="post" enctype="multipart/form-data">
-    <div class="card-body">
-      {% csrf_token %}
-      {{ form.as_p }}
+<h1>{% if form.instance.pk %}Editar{% else %}Agregar{% endif %} Habitación</h1>
+
+<form method="post" class="form-horizontal">
+    {% csrf_token %}
+
+    <!-- Número de Habitación -->
+    <div class="form-group">
+        <label for="id_numero" class="col-sm-3 control-label">Número de Habitación</label>
+        <div class="col-sm-9">
+            {{ form.numero }}
+        </div>
     </div>
-    <div class="card-footer">
-      <a href="{% url 'habitacion_list' %}" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-primary">
-        {% if form.instance.pk %}Guardar Cambios{% else %}Crear Habitación{% endif %}
-      </button>
+
+    <!-- Piso -->
+    <div class="form-group">
+        <label for="id_piso" class="col-sm-3 control-label">Nivel / Piso</label>
+        <div class="col-sm-9">
+            {{ form.piso }}
+        </div>
     </div>
-  </form>
+
+<!-- Tipo de Habitación -->
+<div class="form-group">
+    <label for="id_tipo" class="col-sm-3 control-label">Tipo de Habitación</label>
+    <div class="col-sm-9">
+        {{ form.tipo }}  <!-- Campo para seleccionar el tipo de habitación -->
+    </div>
 </div>
+
+    <!-- Descripción -->
+    <div class="form-group">
+        <label for="id_descripcion" class="col-sm-3 control-label">Descripción</label>
+        <div class="col-sm-9">
+            {{ form.descripcion }}
+        </div>
+    </div>
+
+    <!-- Activo -->
+    <div class="form-group">
+        <label for="id_activo" class="col-sm-3 control-label">Activo</label>
+        <div class="col-sm-9">
+            {{ form.activo }}
+        </div>
+    </div>
+
+<!-- Tarifas -->
+<div class="form-group">
+    <label for="tarifas" class="col-sm-3 control-label">Tarifas</label>
+    <div class="col-sm-9">
+        <ul id="tarifas">
+            {% for tarifa in tarifas %}
+                <li>{{ tarifa.nombre }} - {{ tarifa.precio }} {{ tarifa.tipo }}</li>
+            {% empty %}
+                <li>No hay tarifas asociadas a este tipo de habitación</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+    <div class="form-group text-right">
+        <div class="col-sm-9 col-sm-offset-3">
+            <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Guardar Cambios{% else %}Crear Habitación{% endif %}</button>
+            <a href="{% url 'habitacion_list' %}" class="btn btn-danger">Cancelar</a>
+        </div>
+    </div>
+</form>
+
 {% endblock %}

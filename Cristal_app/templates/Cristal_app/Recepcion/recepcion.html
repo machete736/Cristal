@@ -97,8 +97,8 @@
         <div class="px-3 pb-2">
           <div class="dato"><b>Tipo:</b> {{ habitacion.tipo.nombre }}</div>
 
-          {# Solo mostrar el cliente y el cronómetro si hay una reserva activa #}
-          {% if habitacion.reserva_activa %}
+          {# Solo mostrar el cliente y el cronómetro si hay una reserva activa y está ocupada #}
+          {% if habitacion.reserva_activa and habitacion.estado == 'OCUPADA' %}
             <div class="dato"><b>Cliente:</b> {{ habitacion.reserva_activa.cliente.nombrecompleto }}</div>
             <div class="mt-2">
               <span class="clock-pill">

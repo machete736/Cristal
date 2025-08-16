@@ -1,0 +1,56 @@
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Reporte de Reservas{% endblock %}
+{% block content %}
+<h2>Reporte de Reservas</h2>
+
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Seleccionar Periodo</h3>
+    </div>
+    <div class="card-body">
+        <form action="{% url 'reporte_reservas' %}" method="GET" class="form-inline">
+            <div class="form-group mr-2">
+                <label for="periodo">Filtrar por:</label>
+                <select name="periodo" id="periodo" class="form-control ml-2">
+                    <option value="hoy" {% if periodo_seleccionado == 'hoy' %}selected{% endif %}>Hoy</option>
+                    <option value="semana" {% if periodo_seleccionado == 'semana' %}selected{% endif %}>Semana</option>
+                    <option value="mes" {% if periodo_seleccionado == 'mes' %}selected{% endif %}>Mes</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a href="{% url 'generar_pdf' %}?periodo={{ periodo_seleccionado }}" class="btn btn-danger ml-2" target="_blank">
+                <i class="fas fa-file-pdf"></i> Imprimir PDF
+            </a>
+        </form>
+    </div>
+</div>
+
+<p class="mt-3">
+    Mostrando reservas del <strong>{{ fecha_inicio|date:"d/m/Y" }}</strong> al <strong>{{ fecha_fin|date:"d/m/Y" }}</strong>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Fecha Entrada</th>
+            <th>Fecha Salida</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for reserva in reservas %}
+            <tr>
+                <td>{{ reserva.id }}</td>
+                <td>{{ reserva.cliente.nombrecompleto }}</td>
+                <td>{{ reserva.fecha_entrada|date:"d/m/Y H:i" }}</td>
+                <td>{{ reserva.fecha_salida|date:"d/m/Y H:i" }}</td>
+                <td>{{ reserva.get_estado_display }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">No se encontraron reservas para este periodo.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

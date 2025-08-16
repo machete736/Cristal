@@ -1,0 +1,25 @@
+{% extends 'Cristal_app/base_adminlte.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            {% if form.instance.pk %}Editar{% else %}Crear{% endif %} Tipo de Pago
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <!-- Renderiza el formulario solo una vez -->
+            {{ form.as_p }}
+
+            <div class="form-group">
+                <a href="{% url 'tipopago_list' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if form.instance.pk %}Guardar Cambios{% else %}Crear Tipo de Pago{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

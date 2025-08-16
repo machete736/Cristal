@@ -20,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-#%n)$ehbbf0)-ozo)*ku$1_+r-div$=o-eiv328q2hhq_us9r-'
+
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 AUTH_USER_MODEL = 'Cristal_app.CustomUser'
 DEFAULT_FROM_EMAIL = 'no-reply@tudominio.com'
@@ -29,7 +30,6 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'crispy_forms',
     'crispy_bootstrap5',
-
+    'corsheaders',
+    'rest_framework',  # For API functionality
     'Cristal_app.apps.CristalAppConfig',
 ]
 
@@ -53,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Enable CORS for API usage
 ]
 
 ROOT_URLCONF = 'Cristal.urls'
@@ -60,7 +62,7 @@ ROOT_URLCONF = 'Cristal.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Add this line
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -143,3 +145,15 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Configuración del framework de sitios
 SITE_ID = 1
+
+# CORS: Habilitar los orígenes permitidos para las APIs (si estás haciendo uso de APIs externas o un frontend separado)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Frontend en desarrollo
+    "https://tudominio.com",  # Dominio en producción
+]
+
+CORS_ALLOW_ALL_ORIGINS = True  # Descomenta esto si quieres permitir todos los orígenes
+
+# Seguridad: configuración del middleware de seguridad
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+

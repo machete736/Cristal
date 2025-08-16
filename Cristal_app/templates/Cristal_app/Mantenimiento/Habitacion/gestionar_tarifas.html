@@ -1,0 +1,31 @@
+{% extends "Cristal_app/base_adminlte.html" %}
+
+{% block page_title %}Gestionar Tarifas — {{ tipo_habitacion.nombre }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      {{ tarifa_formset.management_form }}
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead><tr><th>Habitación (opcional)</th><th>Nombre</th><th>Precio</th><th>Activo</th><th>Eliminar</th></tr></thead>
+          <tbody>
+          {% for f in tarifa_formset.forms %}
+            <tr>
+              <td>{{ f.habitacion }}</td>
+              <td>{{ f.nombre }}</td>
+              <td>{{ f.precio }}</td>
+              <td>{{ f.activo }}</td>
+              <td class="text-center">{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button class="btn btn-primary"><i class="fas fa-save"></i> Guardar cambios</button>
+      <a class="btn btn-light" href="{% url 'tipohabitacion_list' %}">Volver</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Ingresos</title>
+    <style>
+        body { font-family: sans-serif; }
+        h1, h2 { text-align: center; }
+        p { margin: 5px 0; }
+        .info { border: 1px solid #ccc; padding: 10px; margin-top: 20px; }
+        .total { font-size: 1.5em; font-weight: bold; text-align: right; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Reporte de Ingresos Totales</h1>
+    <p><strong>Periodo:</strong> Del {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y" }}</p>
+    <hr>
+
+    <h2>Resumen de Ingresos</h2>
+    <p><strong>Ingresos por Ventas:</strong> {{ ventas_ingresos|floatformat:2 }} Bs</p>
+    <p><strong>Ingresos por Reservas:</strong> {{ reservas_ingresos|floatformat:2 }} Bs</p>
+
+    <div class="total">
+        Total de Ingresos: {{ total_ingresos|floatformat:2 }} Bs
+    </div>
+
+    <div class="info">
+        <p><strong>Reporte generado por:</strong> {{ usuario.get_full_name|default:usuario.username }}</p>
+        <p><strong>Fecha de generación:</strong> {{ fecha_generacion|date:"d/m/Y H:i" }}</p>
+    </div>
+</body>
+</html>

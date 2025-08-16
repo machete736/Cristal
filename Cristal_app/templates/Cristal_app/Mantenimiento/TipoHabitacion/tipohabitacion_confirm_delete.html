@@ -1,15 +1,13 @@
-{% extends 'Cristal_app/base_adminlte.html' %}
-{% block title %}Eliminar Tipo de Habitación{% endblock %}
+{% extends "Cristal_app/base_adminlte.html" %}
+{% load static %}
+{% block page_title %}Tipos de Habitación{% endblock %}
 {% block content %}
-<div class="card card-danger">
-  <div class="card-header"><h3 class="card-title">Confirmar Eliminación</h3></div>
+<div class="card">
   <div class="card-body">
-    <p>¿Eliminar <strong>{{ object.nombre }}</strong>? Esta acción no se puede deshacer.</p>
-  </div>
-  <div class="card-footer">
+    <p>¿Eliminar <strong>{{ object.nombre }}</strong>?</p>
     <form method="post">{% csrf_token %}
-      <a href="{% url 'tipohabitacion_list' %}" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-danger">Eliminar</button>
+      <button class="btn btn-danger"><i class="fas fa-trash"></i> Eliminar</button>
+      <a class="btn btn-light" href="{% url 'tipohabitacion_list' %}">Cancelar</a>
     </form>
   </div>
 </div>

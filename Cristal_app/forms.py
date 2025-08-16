@@ -1,12 +1,18 @@
+# Cristal_app/forms.py
 
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth import get_user_model
-# Importaciones de modelos
-from .models import Compra, DetalleCompra, Venta, DetalleVenta, Producto, Cliente, Proveedor, Categoria
+from decimal import Decimal
 from django import forms
-from django.forms import inlineformset_factory
-from .models import Reserva, Pago, Acompanante
+from django.forms import inlineformset_factory, SplitDateTimeWidget
+from django.utils import timezone
+
+# Importaciones de modelos (Corregidas: sin duplicados)
+from .models import (
+    Compra, DetalleCompra, Venta, DetalleVenta, Producto, Cliente, Proveedor,
+    Categoria, Reserva, Pago, Acompanante, Tarifa, Habitacion, TipoPago
+)
 
 # Obtiene el modelo de usuario activo
 User = get_user_model()
@@ -126,10 +132,8 @@ class VentaForm(forms.ModelForm):
     """
     class Meta:
         model = Venta
-        # This is the line that needs to be corrected.
-        # Assuming Venta is not directly linked to a Cliente, but to a Usuario.
-        fields = [] # No fields needed, as 'usuario' is set in the view
-        # If Venta should have a 'cliente' field, you must add it to the Venta model first.
+        # Corregido: El modelo Venta sí tiene un cliente.
+        fields = ['cliente']
 
 
 DetalleVentaFormSet = inlineformset_factory(
@@ -144,59 +148,108 @@ DetalleVentaFormSet = inlineformset_factory(
 # --- FORMULARIO DE CLIENTES ---
 
 class ClienteForm(forms.ModelForm):
-    """
-    Formulario para el modelo Cliente.
-    """
     class Meta:
         model = Cliente
         fields = ['dni', 'nombrecompleto', 'telefono', 'email', 'activo']
-_DATETIME_LOCAL_FMT = "%Y-%m-%dT%H:%M"
+        widgets = {
+            'dni': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombrecompleto': forms.TextInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
-class ReservaForm(forms.ModelForm):
-    # forzamos el widget datetime-local para poder MODIFICAR la salida
-    fecha_salida = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
-        input_formats=[_DATETIME_LOCAL_FMT],
+class HabitacionForm(forms.ModelForm):
+    class Meta:
+        model = Habitacion
+        fields = ['numero', 'piso', 'tipo', 'descripcion', 'activo']
+        widgets = {
+            'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'numero': forms.TextInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+class TarifaForm(forms.ModelForm):
+    class Meta:
+        model = Tarifa
+        fields = ['tipo_habitacion', 'nombre', 'tipo', 'duracion', 'precio']
+        widgets = {
+            'tipo_habitacion': forms.Select(attrs={'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'duracion': forms.NumberInput(attrs={'class': 'form-control'}),
+            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+        }
+
+# Utilidad para inputs bonitos
+CONTROL = {"class": "form-control"}
+
+
+# Cristal_app/forms.py
+
+class ReservaOcuparForm(forms.ModelForm):
+    # Simplificado: La vista ahora se encarga del valor inicial
+    fecha_entrada = forms.DateTimeField(
+        label="Fecha entrada",
         required=True,
-        label="Fecha y hora de salida"
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"})
+    )
+    # ... (El resto de los campos de ReservaOcuparForm se quedan igual) ...
+    fecha_salida = forms.SplitDateTimeField(
+        label="Fecha / Hora salida",
+        required=False, # Hacemos que no sea requerido, ya que se calcula con JS
+        widget=forms.SplitDateTimeWidget(
+            date_attrs={"type": "date", "class": "form-control"},
+            time_attrs={"type": "time", "class": "form-control"},
+        ),
+    )
+    total_calculado = forms.DecimalField(
+        label="Total",
+        max_digits=10, decimal_places=2, required=False, disabled=True,
+        widget=forms.NumberInput(attrs={"class": "form-control", "readonly": True})
+    )
+    deuda_calculada = forms.DecimalField(
+        label="A deuda",
+        max_digits=10, decimal_places=2, required=False, disabled=True,
+        widget=forms.NumberInput(attrs={"class": "form-control", "readonly": True})
     )
 
     class Meta:
         model = Reserva
-        # incluimos cliente y los campos que quieres editar al ocupar
-        fields = ["cliente", "fecha_salida", "descuento_porcentaje", "observaciones"]
+        fields = [
+            "cliente", "tarifa", "fecha_entrada", "fecha_salida",
+            "descuento_monto", "observaciones",
+        ]
         widgets = {
             "cliente": forms.Select(attrs={"class": "form-control"}),
-            "descuento_porcentaje": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "tarifa": forms.Select(attrs={"class": "form-control"}),
+            "descuento_monto": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "value": "0"}),
             "observaciones": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # solo clientes activos
-        self.fields["cliente"].queryset = Cliente.objects.filter(activo=True)
-
-
 class PagoForm(forms.ModelForm):
     class Meta:
         model = Pago
         fields = ["tipo_pago", "monto_recibido"]
         widgets = {
             "tipo_pago": forms.Select(attrs={"class": "form-control"}),
-            "monto_recibido": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "monto_recibido": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"})
         }
 
+class TipoPagoForm(forms.ModelForm):
+    class Meta:
+        model = TipoPago
+        fields = ['nombre', 'descripcion', 'activo']
 
 class AcompananteForm(forms.ModelForm):
     class Meta:
         model = Acompanante
-        fields = ["nombre_completo", "dni"]
+        fields = ['nombre_completo', 'dni']
         widgets = {
-            "nombre_completo": forms.TextInput(attrs={"class": "form-control"}),
-            "dni": forms.TextInput(attrs={"class": "form-control"}),
+            'nombre_completo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre completo'}),
+            'dni': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'DNI'}),
         }
 
-
+# --- DEFINICIÓN ÚNICA Y CORRECTA DE AcompananteFormSet ---
 AcompananteFormSet = inlineformset_factory(
     parent_model=Reserva,
     model=Acompanante,

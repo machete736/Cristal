@@ -1,0 +1,54 @@
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Detalles de Reserva{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <h1>Detalles de Reserva | Habitación {{ reserva.habitacion.numero }}</h1>
+</section>
+
+<section class="content">
+  <div class="box box-info">
+    <div class="box-header with-border">
+      <h3 class="box-title">Información del Cliente</h3>
+    </div>
+    <div class="box-body">
+      <p><strong>Cliente:</strong> {{ reserva.cliente.nombrecompleto }}</p>
+      <p><strong>Fecha de Entrada:</strong> {{ reserva.fecha_entrada|date:"Y-m-d H:i" }}</p>
+      <p><strong>Fecha de Salida:</strong> {{ reserva.fecha_salida|date:"Y-m-d H:i" }}</p>
+      <p><strong>Observaciones:</strong> {{ reserva.observaciones }}</p>
+    </div>
+  </div>
+
+  <div class="box box-warning">
+    <div class="box-header with-border">
+      <h3 class="box-title">Consumos Realizados</h3>
+    </div>
+    <div class="box-body">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio Unitario</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for consumo in consumos %}
+            <tr>
+              <td>{{ consumo.producto.nombre }}</td>
+              <td>{{ consumo.cantidad }}</td>
+              <td>{{ consumo.precio_unitario }}</td>
+              <td>{{ consumo.subtotal }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">No se han registrado consumos para esta reserva.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <a href="{% url 'recepcion' %}" class="btn btn-default">Volver</a>
+</section>
+{% endblock %}

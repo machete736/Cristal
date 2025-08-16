@@ -1,23 +1,51 @@
-{% extends 'Cristal_app/base_adminlte.html' %}
-{% load static %}
-{% block title %}Marcar para Limpieza{% endblock %}
-
+{% extends "Cristal_app/base_adminlte.html" %}
+{% block title %}Marcar Limpieza{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card card-warning">
-            <div class="card-header">
-                <h3 class="card-title">Marcar para Limpieza</h3>
-            </div>
-            <div class="card-body">
-                <p>¿Estás seguro de que deseas marcar la **Habitación {{ habitacion.numero }}** como "Limpieza"?</p>
-                <form method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-warning">Sí, marcar para limpieza</button>
-                    <a href="{% url 'recepcion' %}" class="btn btn-secondary">Cancelar</a>
-                </form>
-            </div>
-        </div>
+<section class="content-header">
+  <h1>Marcar Limpieza | Habitación {{ habitacion.numero }}</h1>
+</section>
+<section class="content">
+  <div class="box box-warning">
+    <div class="box-header with-border">
+      <h3 class="box-title">Confirmar</h3>
     </div>
-</div>
+    <div class="box-body">
+      <p>¿Poner la habitación <strong>{{ habitacion.numero }}</strong> en estado <strong>LIMPIEZA</strong>?</p>
+      <!-- Agregar el contador aquí si quieres visualizarlo también -->
+      {% if habitacion.estado == 'LIMPIEZA' %}
+          <div id="contador"></div>
+          <script>
+              document.addEventListener('DOMContentLoaded', function () {
+                  const salidaHora = new Date("{{ habitacion.reserva_activa.fecha_salida|date:'Y-m-d H:i' }}");
+                  const contadorElement = document.getElementById("contador");
+
+                  function actualizarContador() {
+                      const ahora = new Date();
+                      const diferencia = salidaHora - ahora;
+                      if (diferencia <= 0) {
+                          contadorElement.textContent = "La habitación ya está disponible";
+                      } else {
+                          const horas = Math.floor(diferencia / (1000 * 60 * 60));
+                          const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+                          contadorElement.textContent = `Tiempo restante: ${horas}h ${minutos}m`;
+                      }
+                  }
+
+                  setInterval(actualizarContador, 60000); // Actualiza cada minuto
+                  actualizarContador(); // Inicializa inmediatamente
+              });
+          </script>
+      {% endif %}
+    </div>
+    <div class="box-footer">
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'recepcion' %}" class="btn btn-default">Cancelar</a>
+        <button class="btn btn-warning pull-right" type="submit">
+          <i class="fa fa-broom"></i> Sí, marcar limpieza
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
 {% endblock %}
